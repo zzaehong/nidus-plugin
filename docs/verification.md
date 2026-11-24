@@ -88,3 +88,4 @@
 ## 로컬 확인
 - `claude plugin validate plugin`(v2.1.330): 통과(경고: author·LICENSE·icon 없음 — 마켓 제출 시에만 필요).
 - 실측(2026-11-24, Pro): Telegram 지시 "NVDA 분석"이 처음부터 끝까지 정상 동작(task → worker 4관점 순차 → 검토 → Telegram 보고). 한도 소모는 5시간 한도의 약 4%(`/usage`). 주간 한도 소모는 미측정.
+- 실측(2026-11-25): 맥미니 재부팅 → 로그인 후 watchdog(launchd)이 `nidus` 세션을 다시 띄우고 Telegram 재시작 알림이 옴. 단, 볼트는 한 번 직접 신뢰해 둬야 함(`--add-dir` 승인은 세션마다 사라져 확인 화면에서 멈춤). SwiftBar 메뉴바 아이콘은 SwiftBar의 Launch at Login을 켜야 재부팅 후 뜸.
