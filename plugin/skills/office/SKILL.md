@@ -7,6 +7,7 @@ description: Nidus 관리자 절차. Telegram이나 터미널로 받은 지시�
 ## 파일
 - `chat.md`: 재홍의 Telegram chat_id. 처음 메시지를 받으면 기록한다. 선제 알림은 이 chat_id로 `reply`한다.
 - `jobs.md`: 반복 작업 표 `| id | 주기(cron 또는 설명) | 지시 | 등록일 |`.
+- `system/`: watchdog 기록(`events.md` 재시작·알림 이력, `watchdog.state`, `restarts`). 세션은 여기서 `handoff.md`만 쓴다. 일일 재시작 전에 요청을 받으면 이어받을 내용을 `handoff.md`에 덮어쓰고, 재시작 후 읽는다.
 - `tasks/YYYY-MM-DD-<짧은-id>.md`: 지시 원문, 상태(`접수`/`진행`/`검토`/`완료`/`막힘`), 사용한 팀, worker 결과 경로, 검토 판정, 최종 보고.
 
 ## 지시 처리

@@ -3,19 +3,15 @@
 # install: brew install --cask swiftbar → pick a plugin folder → ln -s "$PWD/scripts/nidus-status.10s.sh" <plugin folder>/
 export PATH=$PATH:/opt/homebrew/bin:/usr/local/bin # SwiftBar's PATH may lack homebrew
 LOG=$HOME/Library/Logs/nidus-watchdog.log
-ATTACH=$(dirname "$(realpath "$0")")/nidus-attach.command # $0 is the symlink in the SwiftBar folder
+HERE=$(dirname "$(realpath "$0")") # $0 is the symlink in the SwiftBar folder
+ATTACH=$HERE/nidus-attach.command
 
-# shortcut: state is guessed from on-screen text of Claude Code's TUI; update the patterns if its wording changes.
-if ! tmux has-session -t nidus 2>/dev/null; then
-  icon=🔴 state=꺼짐
-else
-  pane=$(tmux capture-pane -p -t nidus 2>/dev/null)
-  case $pane in
-  *"Enter to confirm"* | *"Do you want"* | *"Esc to cancel"*) icon=🟡 state="승인 대기 (attach해서 확인)" ;;
-  *"esc to interrupt"*) icon=🔵 state="작업 중" ;;
-  *) icon=🟢 state=대기 ;;
-  esac
-fi
+case $(sh "$HERE/nidus-state.sh") in
+off) icon=🔴 state=꺼짐 ;;
+waiting) icon=🟡 state="승인 대기 (attach해서 확인)" ;;
+working) icon=🔵 state="작업 중" ;;
+*) icon=🟢 state=대기 ;;
+esac
 
 echo "$icon"
 echo "---"
