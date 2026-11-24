@@ -14,8 +14,10 @@
 2. Telegram BotFather `/newbot` → 토큰 복사
 3. Claude Code에서 `/plugin install telegram@claude-plugins-official` → `/telegram:configure <토큰>`
 4. `scripts/office.sh <볼트 경로>`로 시작 → 봇에 메시지 → `/telegram:access pair <코드>` → `/telegram:access policy allowlist`
+5. (선택) 자동 재시작: `scripts/watchdog.sh install <볼트 경로>` — launchd가 1분마다 `nidus` 세션을 확인하고, 없으면 다시 띄워 `/loop` 재등록 + Telegram 알림. 30분에 3회까지만. 로그 `~/Library/Logs/nidus-watchdog.log`. 일부러 끌 때는 먼저 `scripts/watchdog.sh uninstall`(안 그러면 1분 안에 다시 뜸). 로그인한 뒤에만 동작한다. 재시작이 확인 화면에서 멈추지 않도록 볼트는 한 번 `cd <볼트> && claude`로 신뢰해 둔다(`--add-dir` 승인은 세션마다 사라짐).
+6. (선택) 메뉴바 상태: `brew install --cask swiftbar` → 플러그인 폴더 선택 → `ln -s "$PWD/scripts/nidus-status.10s.sh" <플러그인 폴더>/`. 🔴 꺼짐 · 🟡 승인 대기 · 🔵 작업 중 · 🟢 대기, 클릭하면 tmux attach·로그.
 
 ## 한계
-- Channels는 research preview. 사용자가 먼저 말하지 않은 선제 알림이 되는지는 실측 필요.
+- Channels는 research preview(문법이 바뀔 수 있음). 선제 알림은 실측으로 확인됨(2026-11-24).
 - `/loop`는 7일 후 만료 → SessionStart 훅이 `jobs.md`로 재등록.
 - 웹 내용으로 데이터가 새는 경로(WebFetch URL)는 막지 않는다.
