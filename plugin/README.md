@@ -28,5 +28,5 @@
 
 ## 한계
 - Channels는 research preview(문법이 바뀔 수 있음). 선제 알림은 실측으로 확인됨(2026-11-24).
-- `/loop`는 7일 후 만료 → SessionStart 훅이 `jobs.md`로 재등록.
-- 웹 내용으로 데이터가 새는 경로(WebFetch URL)는 막지 않는다.
+- `/loop`는 7일 후 만료 → watchdog의 일일 재시작과 SessionStart 안내로 `jobs.md`에서 재등록.
+- 볼트 내용이 웹 요청(검색어·URL)으로 새는 것은 코드로 막지 않고 프롬프트 규칙(worker 지침)과 관리자 검토(체크리스트 6번)로만 제한한다.
