@@ -12,8 +12,9 @@ const T0 = Math.floor(new Date('2026-11-25T03:00:00+09:00').getTime() / 1000); /
 function sandbox() {
   const dir = mkdtempSync(join(tmpdir(), 'nidus-watchdog-'));
   const office = join(dir, 'office');
-  mkdirSync(join(office, 'tasks'), { recursive: true });
-  writeFileSync(join(office, 'chat.md'), 'Telegram chat_id: 123456789\n');
+  mkdirSync(join(office, 'tasks/2026-11/2026-11-26-x'), { recursive: true });
+  mkdirSync(join(office, 'system'), { recursive: true });
+  writeFileSync(join(office, 'system/chat.md'), 'Telegram chat_id: 123456789\n');
   writeFileSync(join(dir, 'tg.env'), 'TELEGRAM_BOT_TOKEN=111:abc_DEF\n');
   const p = (n) => join(dir, n);
   const stub = (name, body) => { writeFileSync(p(name), `#!/bin/sh\n${body}\n`); chmodSync(p(name), 0o755); };
@@ -96,7 +97,7 @@ test('daily restart is skipped while a task is open', () => {
   const s = sandbox();
   s.set(true, IDLE);
   s.tick(T0);
-  writeFileSync(join(s.office, 'tasks/2026-11-26-x.md'), '- 상태: 진행\n');
+  writeFileSync(join(s.office, 'tasks/2026-11/2026-11-26-x/report.md'), '---\nstatus: 진행\n---\n');
   const day2 = T0 + 27 * 3600;
   for (let i = 0; i < 5; i++) s.tick(day2 + i * 60);
   assert.deepEqual(s.lines('tmux.log'), []);

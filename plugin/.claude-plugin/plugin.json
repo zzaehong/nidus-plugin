@@ -1,13 +1,5 @@
 {
   "name": "nidus",
   "version": "0.2.0",
-  "description": "상시 관리자 세션(Telegram) + 순차 워커 팀 + 자동 검토. Obsidian vault는 읽기 전용 library.",
-  "userConfig": {
-    "vault_path": {
-      "type": "directory",
-      "title": "Obsidian 볼트 경로",
-      "description": "library로 사용할 볼트 폴더 (읽기 전용으로만 사용)",
-      "required": true
-    }
-  }
+  "description": "상시 관리자 세션(Telegram) + 순차 워커 팀 + 자동 검토. Obsidian vault는 읽기 전용 library."
 }

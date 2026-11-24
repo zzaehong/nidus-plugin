@@ -71,7 +71,7 @@ daily_restart() {
       return 0
     fi
     [ "$IDLE" -ge 2 ] || return 0 # idle for two ticks in a row
-    grep -lE '상태: *(접수|진행|검토)' "$OFFICE"/tasks/*.md >/dev/null 2>&1 && return 0
+    grep -lE '^status: *(접수|진행|검토)' "$OFFICE"/tasks/*/*/report.md >/dev/null 2>&1 && return 0
     tmux send-keys -t nidus -l "$HANDOFF_PROMPT"
     sleep "${NIDUS_KEY_DELAY:-1}"
     tmux send-keys -t nidus Enter
@@ -100,7 +100,7 @@ event() {
 tg() {
   token=$(sed -nE 's/^TELEGRAM_BOT_TOKEN=["'\'']?([0-9]+:[A-Za-z0-9_-]+)["'\'']?$/\1/p' \
     "${NIDUS_TG_ENV:-$HOME/.claude/channels/telegram/.env}" 2>/dev/null | head -1)
-  chat=$(grep -oE -- '-?[0-9]{3,}' "$OFFICE/chat.md" 2>/dev/null | head -1)
+  chat=$(grep -oE -- '-?[0-9]{3,}' "$OFFICE/system/chat.md" 2>/dev/null | head -1)
   [ -n "$token" ] && [ -n "$chat" ] || { event "Telegram 알림 실패: 토큰 또는 chat_id 없음"; return 1; }
   # url via stdin config keeps the token out of ps
   printf 'url = "https://api.telegram.org/bot%s/sendMessage"\n' "$token" |

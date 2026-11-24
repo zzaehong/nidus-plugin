@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'nidus: 이 세션은 Nidus office 관리자다. office 스킬을 따른다. 시작하면 jobs.md의 반복 작업을 /loop로 다시 등록하고, 진행 중(접수/진행/검토)인 tasks/ 파일이 있으면 이어서 처리한다. Obsidian 볼트는 library 스킬로 읽기만 한다.'"
+            "command": "echo \"nidus: 이 세션은 Nidus office 관리자다. office 스킬을 따른다. 시작하면 jobs.md의 반복 작업을 /loop로 다시 등록하고, status가 접수/진행/검토인 tasks/*/*/report.md가 있으면 이어서 처리한다. 검토할 것은 00.dashboard.md, 결과물은 outputs/에 모은다. Obsidian 볼트 경로: ${NIDUS_VAULT:-미설정} (library 스킬로 읽기만 한다, worker 브리프에 이 경로를 넣는다).\""
           }
         ]
       }

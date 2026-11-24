@@ -9,6 +9,11 @@
 - `bin/af-query` Asset_Frame DB 읽기 전용 조회 (`AF_DB`로 경로 변경)
 - `hooks/guard.mjs` `NIDUS_GUARD=1`일 때 office 폴더 밖 쓰기, main/force push, 자격 증명 경로 차단. office를 볼트 안(예: `<볼트>/nidus_office`)에 두면 볼트에서 그 폴더만 쓰기 허용
 
+## office 폴더
+- `00.dashboard.md` 검토 대기·막힘·진행 중·최근 완료·반복 작업. 여기만 보면 된다.
+- `outputs/<분야>/<대상>.md` 결과물. 대상마다 문서 하나를 계속 갱신(현재 판단 → 확인할 점 → 변경 이력). 바뀌면 `review: 대기`, 읽고 나면 Obsidian에서 `확인`으로.
+- `tasks/YYYY-MM/<id>/report.md` + `workers/` 작업 기록. `jobs.md` 반복 작업. `system/` chat_id·handoff·watchdog 기록.
+
 ## 준비 (1회)
 1. `brew install bun tmux`
 2. Telegram BotFather `/newbot` → 토큰 복사
