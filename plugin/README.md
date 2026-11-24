@@ -18,8 +18,8 @@
 1. `brew install bun tmux`
 2. Telegram BotFather `/newbot` → 토큰 복사
 3. Claude Code에서 `/plugin install telegram@claude-plugins-official` → `/telegram:configure <토큰>`
-4. `scripts/office.sh <볼트 경로>`로 시작 → 봇에 메시지 → `/telegram:access pair <코드>` → `/telegram:access policy allowlist`
-5. (선택) 자동 재시작: `scripts/watchdog.sh install <볼트 경로> [office 폴더]` — launchd가 1분마다 `nidus` 세션을 확인한다.
+4. `scripts/office.sh <볼트 경로> <office 폴더>`로 시작 → 봇에 메시지 → `/telegram:access pair <코드>` → `/telegram:access policy allowlist`
+5. (선택) 자동 재시작: `scripts/watchdog.sh install <볼트 경로> <office 폴더>` — launchd가 1분마다 `nidus` 세션을 확인한다.
    - 없으면 다시 띄워 `/loop` 재등록 + Telegram 알림. 30분에 3회까지만, 넘으면 watchdog이 Bot API로 직접 알림.
    - 승인 대기 3분, 작업 중 60분이 넘으면 Bot API로 직접 알림(멈춤 의심). 토큰은 Telegram 플러그인의 `.env`에서 읽는다.
    - 매일 06~08시(KST) 사이 대기 상태이고 진행 중 task가 없으면 `system/handoff.md`를 쓰게 한 뒤 재시작(컨텍스트 정리 + `/loop` 7일 만료 대응). 8시까지 못 하면 그날은 건너뛰고 알림.

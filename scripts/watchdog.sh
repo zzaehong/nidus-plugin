@@ -1,7 +1,7 @@
 #!/bin/sh
 # Keep the nidus tmux session alive via launchd (runs every 60s): restart when gone, alert on Telegram when stuck,
 # and restart once a day while idle after a handoff note. Its records live in <office>/system/.
-# usage: watchdog.sh install <vault path> [office dir] | uninstall | check <vault path> [office dir] | notify <office dir> <text>
+# usage: watchdog.sh install <vault path> <office dir> | uninstall | check <vault path> <office dir> | notify <office dir> <text>
 set -eu
 DIR=$(cd "$(dirname "$0")" && pwd)
 LABEL=com.nidus.watchdog
@@ -111,8 +111,8 @@ tg() {
 
 case ${1:-} in
 check)
-  [ $# -ge 2 ] || { echo "usage: $0 check <vault path> [office dir]" >&2; exit 2; }
-  check "$2" "${3:-$HOME/NidusOffice}"
+  [ $# -ge 3 ] || { echo "usage: $0 check <vault path> <office dir>" >&2; exit 2; }
+  check "$2" "$3"
   ;;
 notify) # manual test of the direct Telegram path: watchdog.sh notify <office dir> <text>
   [ $# -ge 3 ] || { echo "usage: $0 notify <office dir> <text>" >&2; exit 2; }
@@ -121,8 +121,9 @@ notify) # manual test of the direct Telegram path: watchdog.sh notify <office di
   tg "$3"
   ;;
 install)
-  [ $# -ge 2 ] && [ -d "$2" ] || { echo "usage: $0 install <vault path> [office dir]" >&2; exit 2; }
-  VAULT=$(cd "$2" && pwd) OFFICE=${3:-$HOME/NidusOffice}
+  [ $# -ge 3 ] && [ -d "$2" ] || { echo "usage: $0 install <vault path> <office dir>" >&2; exit 2; }
+  mkdir -p "$3"
+  VAULT=$(cd "$2" && pwd) OFFICE=$(cd "$3" && pwd) # launchd needs absolute paths
   # launchd PATH is only /usr/bin:/bin:..., so bake in where claude/tmux/bun/node live (node runs the guard hook).
   P=""
   for c in claude tmux bun node; do

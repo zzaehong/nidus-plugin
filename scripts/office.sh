@@ -1,9 +1,10 @@
 #!/bin/sh
-# Start the always-on Nidus office session in tmux. usage: scripts/office.sh <vault path> [office dir]
+# Start the always-on Nidus office session in tmux. usage: scripts/office.sh <vault path> <office dir>
 set -eu
-[ $# -ge 1 ] || { echo "usage: $0 <vault path> [office dir]" >&2; exit 2; }
+[ $# -ge 2 ] || { echo "usage: $0 <vault path> <office dir>" >&2; exit 2; }
 VAULT=$1
-OFFICE=${2:-$HOME/NidusOffice}
+mkdir -p "$2"
+OFFICE=$(cd "$2" && pwd)
 PLUGIN=$(cd "$(dirname "$0")/../plugin" && pwd)
 mkdir -p "$OFFICE/tasks" "$OFFICE/outputs" "$OFFICE/system"
 touch "$OFFICE/jobs.md" "$OFFICE/system/chat.md"
