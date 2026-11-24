@@ -28,9 +28,11 @@ export function checkBash(cmd, cwd) {
     if (refs.length < 2 && PROTECTED.test(branchOf(cwd))) return 'main/master 브랜치에서 push 금지';
   }
   if (SECRETS.test(cmd)) return '자격 증명 경로 접근 금지';
+  // The office folder may live inside the read-only vault; paths under it don't count as vault paths.
+  const outside = cwd ? cmd.replace(new RegExp(cwd.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + `(?=[/\\s'"]|$)`, 'g'), '') : cmd;
   // shortcut: keyword match only; misses writes via scripts/aliases. Upgrade to sandboxing if a worker tries.
   for (const ro of readonlyPaths())
-    if (cmd.includes(ro) && /(>|\brm\b|\bmv\b|\bcp\b|\btee\b|\bsed\s+-i|\btouch\b|\bmkdir\b|(^|[\s;&|(])sqlite3\s+(?!.*(-readonly|mode=ro)))/.test(cmd))
+    if (outside.includes(ro) && /(>|\brm\b|\bmv\b|\bcp\b|\btee\b|\bsed\s+-i|\btouch\b|\bmkdir\b|(^|[\s;&|(])sqlite3\s+(?!.*(-readonly|mode=ro)))/.test(cmd))
       return `읽기 전용 경로 쓰기 금지: ${ro}`;
   return null;
 }

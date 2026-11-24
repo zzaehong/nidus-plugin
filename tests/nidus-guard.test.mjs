@@ -52,6 +52,17 @@ test('vault is read-only', () => {
   allowed(run('Bash', { command: `grep -r AAPL ${vault}` }));
   allowed(run('Read', { file_path: join(vault, 'note.md') }));
 });
+test('office folder inside the vault is writable, rest of the vault is not', () => {
+  const office = join(vault, 'nidus_office');
+  spawnSync('mkdir', ['-p', office]);
+  const at = { cwd: office };
+  allowed(run('Write', { file_path: join(office, 'tasks/a.md') }, at));
+  allowed(run('Bash', { command: `mkdir -p ${office}/tasks/x && echo x > '${office}/chat.md'` }, at));
+  blocked(run('Write', { file_path: join(vault, 'note.md') }, at));
+  blocked(run('Bash', { command: `echo x > ${vault}/note.md` }, at));
+  blocked(run('Bash', { command: `mkdir ${office}_evil` }, at));
+  blocked(run('Bash', { command: `cp ${office}/a.md ${vault}/note.md` }, at));
+});
 test('guard is inactive without NIDUS_GUARD', () => {
   allowed(run('Bash', { command: 'git push origin main' }, {}, { ...process.env, NIDUS_GUARD: '' }));
 });

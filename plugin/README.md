@@ -7,7 +7,7 @@
 - `skills/team-stock` 팀 예시(주식 4관점). 다른 분야는 `skills/team-<이름>`을 추가한다.
 - `agents/worker` 범용 워커(Sonnet). Telegram 도구 없음.
 - `bin/af-query` Asset_Frame DB 읽기 전용 조회 (`AF_DB`로 경로 변경)
-- `hooks/guard.mjs` `NIDUS_GUARD=1`일 때 office 폴더 밖 쓰기, main/force push, 자격 증명 경로 차단
+- `hooks/guard.mjs` `NIDUS_GUARD=1`일 때 office 폴더 밖 쓰기, main/force push, 자격 증명 경로 차단. office를 볼트 안(예: `<볼트>/nidus_office`)에 두면 볼트에서 그 폴더만 쓰기 허용
 
 ## 준비 (1회)
 1. `brew install bun tmux`
