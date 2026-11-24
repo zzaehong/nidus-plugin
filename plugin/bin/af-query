@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""Read-only queries on the Asset_Frame SQLite DB.
+usage: af-query bars <TICKER> [days=60] | af-query macro <SERIES> [n=24] | af-query tickers"""
+import os, sqlite3, sys
+
+DB = os.environ.get("AF_DB", os.path.expanduser("~/Developer/Asset_Frame/var/asset_frame.sqlite3"))
+
+def connect():
+    return sqlite3.connect(f"file:{DB}?mode=ro", uri=True)  # never write: Asset_Frame updates daily at 07:30
+
+def bars(con, ticker, days):
+    ids = [r[0] for r in con.execute(
+        "SELECT asset_id FROM asset_identifiers WHERE identifier_type='ticker' AND identifier_value=?", (ticker.upper(),))]
+    if len(ids) != 1:
+        sys.exit(f"af-query: ticker {ticker!r} matches {len(ids)} assets (see `af-query tickers`)")
+    latest = {}  # same rule as Asset_Frame ResearchStore.daily_bars: latest fetch per trading date wins
+    for d, *v in con.execute("SELECT trading_date, open, high, low, close, adjusted_close, volume FROM price_observations "
+                             "WHERE asset_id=? ORDER BY trading_date, fetched_at", (ids[0],)):
+        latest[d] = v
+    print("date,open,high,low,close,adj_close,volume")
+    for d in sorted(latest)[-days:]:
+        print(",".join([d, *("" if x is None else str(x) for x in latest[d])]))
+
+def macro(con, series, n):
+    latest = {}
+    for d, v in con.execute("SELECT observation_date, value FROM macro_observation WHERE series_id=? "
+                            "ORDER BY observation_date, fetched_at", (series.upper(),)):
+        latest[d] = v
+    if not latest:
+        sys.exit(f"af-query: no macro series {series!r}")
+    print("date,value")
+    for d in sorted(latest)[-n:]:
+        print(f"{d},{latest[d] or ''}")
+
+def main(argv):
+    con = connect()
+    if argv[:1] == ["tickers"]:
+        for t, typ in con.execute("SELECT i.identifier_value, a.asset_type FROM asset_identifiers i JOIN assets a USING(asset_id) "
+                                  "WHERE identifier_type='ticker' ORDER BY 2, 1"):
+            print(t, typ)
+    elif argv[:1] == ["bars"] and len(argv) in (2, 3):
+        bars(con, argv[1], int(argv[2]) if len(argv) == 3 else 60)
+    elif argv[:1] == ["macro"] and len(argv) in (2, 3):
+        macro(con, argv[1], int(argv[2]) if len(argv) == 3 else 24)
+    else:
+        sys.exit(__doc__)
+
+if __name__ == "__main__":
+    main(sys.argv[1:])
