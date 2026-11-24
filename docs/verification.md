@@ -64,7 +64,8 @@
 - 공식 채널: Telegram, Discord, iMessage(+ fakechat 데모). **Slack은 채널 없음**(Claude in Slack은 클라우드 세션을 따로 띄움).
 - Telegram: BotFather `/newbot` → `/plugin install telegram@claude-plugins-official` → `/telegram:configure <token>` → `claude --channels plugin:telegram@claude-plugins-official` → 봇에 메시지 → `/telegram:access pair <code>` → `/telegram:access policy allowlist`.
 - 세션이 열려 있을 때만 수신. Claude는 플러그인의 `reply` 도구로 답장. 
-- **미확인**: 수신 메시지 없이 선제로 보내기. 권한 요청 중계(`claude/channel/permission`)를 Telegram 플러그인이 지원하는지.
+- **실측 확인(2026-11-24)**: 수신 메시지 없이 선제로 보내기 됨(`chat.md`에 기록한 chat_id로 `reply`), chat_id 기록 됨.
+- **미확인**: 권한 요청 중계(`claude/channel/permission`)를 Telegram 플러그인이 지원하는지.
 - 보안: 발신자 allowlist(from.id 기준). 문서: "An ungated channel is a prompt injection vector". 중계가 켜지면 allowlist의 누구나 도구 사용을 승인할 수 있다.
 
 ## 무인 권한 — 확인
@@ -86,3 +87,4 @@
 
 ## 로컬 확인
 - `claude plugin validate plugin`(v2.1.330): 통과(경고: author·LICENSE·icon 없음 — 마켓 제출 시에만 필요).
+- 실측(2026-11-24, Pro): Telegram 지시 "NVDA 분석"이 처음부터 끝까지 정상 동작(task → worker 4관점 순차 → 검토 → Telegram 보고). 한도 소모는 5시간 한도의 약 4%(`/usage`). 주간 한도 소모는 미측정.
