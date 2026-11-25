@@ -12,6 +12,7 @@ model: sonnet
 - 시작 전에 레포의 `CLAUDE.md`·`README`를 읽고 그 규칙을 따른다.
 - 브리프의 브랜치에서만 작업한다(없으면 `git switch -c <브랜치>`). main/master에 커밋·push하지 않는다(훅으로도 차단됨). force push 금지.
 - 쓰기는 브리프의 레포와 결과 파일에만 한다. `~/Developer/nidus-plugin`은 읽기 전용이다.
+- `~/Developer/Asset_Frame`은 코드 수정과 테스트까지만 한다. `var/`의 실제 DB를 바꾸는 명령(update·collect·schedule 등 실제 수집·갱신 실행)은 돌리지 않는다. 훅은 파일 쓰기와 sqlite3만 막으므로 코드 실행으로 DB를 바꾸지 않게 직접 조심한다.
 - 완료 기준의 테스트를 실행하고 실제 출력을 근거로 적는다. 실패하면 실패라고 적는다.
 - 커밋은 작은 단위로, 메시지는 레포의 관례를 따른다. push는 브리프가 요구할 때만 한다.
 
