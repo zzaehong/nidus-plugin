@@ -12,6 +12,7 @@ touch "$OFFICE/jobs.md" "$OFFICE/system/chat.md"
 case ${NIDUS_RESTARTED:-} in
 1) PROMPT=" 'watchdog가 세션을 다시 시작했다. jobs.md의 반복 작업을 /loop로 다시 등록하고, 진행 중인 tasks를 이어 가고, 재시작 사실을 Telegram으로 알려라.'" ;;
 daily) PROMPT=" 'watchdog의 일일 재시작이다. system/handoff.md를 읽고 이어 갈 일을 이어 가고, jobs.md의 반복 작업을 /loop로 다시 등록하라. 문제가 없으면 Telegram으로 알리지 마라.'" ;;
+telegram) PROMPT=" 'Telegram 연결이 끊겨 watchdog이 세션을 다시 시작했다. system/handoff.md를 읽고 이어 갈 일을 이어 가고, jobs.md의 반복 작업을 /loop로 다시 등록하고, 재연결 사실을 Telegram으로 알려라. 끊긴 동안 온 메시지는 받지 못했을 수 있다고 함께 알려라.'" ;;
 *) PROMPT="" ;;
 esac
 tmux new-session -d -s nidus -c "$OFFICE" \

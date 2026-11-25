@@ -12,6 +12,11 @@ waiting) icon=🟡 state="승인 대기 (attach해서 확인)" ;;
 working) icon=🔵 state="작업 중" ;;
 *) icon=🟢 state=대기 ;;
 esac
+# Telegram channel alive = plugin's server.ts still holds bot.pid (same check as watchdog.sh tg_up).
+pid=$(cat "${NIDUS_TG_DIR:-$HOME/.claude/channels/telegram}/bot.pid" 2>/dev/null)
+if [ "$icon" != 🔴 ] && ! { [ -n "$pid" ] && ps -p "$pid" -o args= 2>/dev/null | grep -q server.ts; }; then
+  icon=🟠 state="$state · Telegram 끊김 (watchdog이 대기 상태일 때 재시작)"
+fi
 
 echo "$icon"
 echo "---"

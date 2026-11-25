@@ -26,16 +26,22 @@ kill-session) echo kill >> ${p('tmux.log')}; rm -f ${p('up')} ;;
 esac`);
   stub('curl', `cat >/dev/null; echo "$*" >> ${p('curl.log')}`);
   stub('office.sh', `echo "$NIDUS_RESTARTED" >> ${p('starts')}; touch ${p('up')}`);
+  // Telegram channel: bot.pid + a ps stub that reports server.ts while ${p('tgup')} exists.
+  mkdirSync(p('tg'));
+  writeFileSync(p('tg/bot.pid'), '4242');
+  writeFileSync(p('tgup'), '');
+  stub('ps', `[ -f ${p('tgup')} ] && echo "bun server.ts"; true`);
+  const tgUp = (up) => (up ? writeFileSync(p('tgup'), '') : rmSync(p('tgup'), { force: true }));
   const set = (up, pane = '') => { up ? writeFileSync(p('up'), '') : rmSync(p('up'), { force: true }); writeFileSync(p('pane'), pane); };
   const tick = (now) => {
     const r = spawnSync('sh', [watchdog, 'check', '/vault', office], {
       encoding: 'utf8',
-      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, OFFICE_SH: p('office.sh'), NIDUS_NOW: String(now), NIDUS_TG_ENV: p('tg.env'), NIDUS_KEY_DELAY: '0' },
+      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, OFFICE_SH: p('office.sh'), NIDUS_NOW: String(now), NIDUS_TG_ENV: p('tg.env'), NIDUS_TG_DIR: p('tg'), NIDUS_KEY_DELAY: '0' },
     });
     assert.equal(r.status, 0, r.stderr + r.stdout);
   };
   const lines = (n) => (existsSync(p(n)) ? readFileSync(p(n), 'utf8').trim().split('\n') : []);
-  return { office, set, tick, lines };
+  return { office, set, tick, lines, tgUp };
 }
 const IDLE = '❯ \n  ⏵⏵ auto mode on (shift+tab to cycle)';
 const WORKING = '  ⏵⏵ auto mode on (shift+tab to cycle) · esc to interrupt';
@@ -129,4 +135,54 @@ test('tampered state file is ignored, not executed', () => {
   writeFileSync(join(s.office, 'system/watchdog.state'), 'idle a[$(touch /tmp/nidus-pwned)] 0 x 0 0\n');
   s.tick(T0 + 60);
   assert.ok(!existsSync('/tmp/nidus-pwned'));
+});
+
+test('Telegram channel drop while idle: handoff, then restart with reason telegram (counts toward the cap)', () => {
+  const s = sandbox();
+  s.set(true, IDLE);
+  s.tick(T0);
+  s.tgUp(false);
+  s.tick(T0 + 60);
+  assert.deepEqual(s.lines('tmux.log'), [], 'one down tick is not enough');
+  s.tick(T0 + 120);
+  assert.match(s.lines('tmux.log')[0], /handoff\.md/);
+  writeFileSync(join(s.office, 'system/handoff.md'), '없음\n');
+  utimesSync(join(s.office, 'system/handoff.md'), T0 + 150, T0 + 150);
+  s.tick(T0 + 180);
+  assert.ok(s.lines('tmux.log').includes('kill'));
+  assert.deepEqual(s.lines('starts'), ['telegram']);
+  assert.equal(readFileSync(join(s.office, 'system/restarts'), 'utf8').trim().split('\n').length, 1);
+});
+
+test('Telegram drop while working: no restart, one alert at 30 minutes', () => {
+  const s = sandbox();
+  s.set(true, WORKING);
+  s.tgUp(false);
+  for (let m = 0; m <= 35; m++) s.tick(T0 + m * 60);
+  assert.deepEqual(s.lines('tmux.log'), []);
+  const alerts = s.lines('curl.log');
+  assert.equal(alerts.length, 1);
+});
+
+test('Telegram comes back before the handoff finishes: restart cancelled', () => {
+  const s = sandbox();
+  s.set(true, IDLE);
+  s.tick(T0);
+  s.tgUp(false);
+  s.tick(T0 + 60);
+  s.tick(T0 + 120); // handoff requested
+  s.tgUp(true);
+  s.tick(T0 + 180);
+  s.tick(T0 + 1200);
+  assert.deepEqual(s.lines('starts'), []);
+  assert.match(readFileSync(join(s.office, 'system/events.md'), 'utf8'), /재시작 취소/);
+});
+
+test('Telegram restarts share the crash cap', () => {
+  const s = sandbox();
+  writeFileSync(join(s.office, 'system/restarts'), [T0 - 30, T0 - 20, T0 - 10].join('\n') + '\n');
+  s.set(true, IDLE);
+  s.tgUp(false);
+  for (let m = 0; m < 5; m++) s.tick(T0 + m * 60);
+  assert.deepEqual(s.lines('tmux.log'), []);
 });

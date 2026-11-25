@@ -1,6 +1,7 @@
 #!/bin/sh
 # Keep the nidus tmux session alive via launchd (runs every 60s): restart when gone, alert on Telegram when stuck,
-# and restart once a day while idle after a handoff note. Its records live in <office>/system/.
+# and restart (after a handoff note, while idle) once a day or when the Telegram channel has dropped.
+# Its records live in <office>/system/.
 # usage: watchdog.sh install <vault path> <office dir> | uninstall | check <vault path> <office dir> | notify <office dir> <text>
 set -eu
 DIR=$(cd "$(dirname "$0")" && pwd)
@@ -12,7 +13,9 @@ WAIT_ALERT=180               # approval prompt open this long → alert
 WORK_ALERT=3600              # "working" this long → alert (spinner keeps redrawing even when stuck, so time is the signal)
 export TZ=Asia/Seoul         # daily window is in KST regardless of the system setting
 DAILY_HOUR=6 DAILY_END=8 HANDOFF_TIMEOUT=900 # daily restart only between 06:00 and 08:00
-HANDOFF_PROMPT='일일 재시작 준비다. 다음 세션이 이어받을 내용(진행 중인 대화, 미완료 지시, 주의할 점)을 system/handoff.md에 덮어써라. 없으면 없음이라고 적어라. 새 작업은 시작하지 말고 Telegram으로 보내지 마라.'
+TG_DIR=${NIDUS_TG_DIR:-$HOME/.claude/channels/telegram}
+TG_DOWN_RESTART=2 TG_DOWN_ALERT=30 # ticks (minutes) the channel is gone before restarting / alerting
+HANDOFF_PROMPT='watchdog 재시작 준비다. 다음 세션이 이어받을 내용(진행 중인 대화, 미완료 지시, 주의할 점)을 system/handoff.md에 덮어써라. 없으면 없음이라고 적어라. 새 작업은 시작하지 말고 Telegram으로 보내지 마라.'
 
 num() { case $1 in '' | *[!0-9]*) echo "$2" ;; *) echo "$1" ;; esac; } # state file is writable by the session: never trust it
 
@@ -23,44 +26,106 @@ check() {
   NOW=$(num "${NIDUS_NOW:-}" "$(date +%s)")
   TODAY=$(date -r "$NOW" +%F) HOUR=$(date -r "$NOW" +%H)
 
-  ST=none SINCE=$NOW ALERTED=0 DAILY=$TODAY HANDOFF=0 IDLE=0
-  [ -f "$STATEF" ] && read -r ST SINCE ALERTED DAILY HANDOFF IDLE <"$STATEF" || true
+  ST=none SINCE=$NOW ALERTED=0 DAILY=$TODAY HANDOFF=0 IDLE=0 TGDOWN=0 REASON=-
+  [ -f "$STATEF" ] && read -r ST SINCE ALERTED DAILY HANDOFF IDLE TGDOWN REASON <"$STATEF" || true
   case ${ST:-} in off | waiting | working | idle) ;; *) ST=none ;; esac
-  SINCE=$(num "${SINCE:-}" "$NOW") ALERTED=$(num "${ALERTED:-}" 0) HANDOFF=$(num "${HANDOFF:-}" 0) IDLE=$(num "${IDLE:-}" 0)
+  case ${REASON:-} in daily | telegram) ;; *) REASON=- ;; esac
+  SINCE=$(num "${SINCE:-}" "$NOW") ALERTED=$(num "${ALERTED:-}" 0) HANDOFF=$(num "${HANDOFF:-}" 0) IDLE=$(num "${IDLE:-}" 0) TGDOWN=$(num "${TGDOWN:-}" 0)
   case ${DAILY:-} in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;; *) DAILY=$TODAY ;; esac # first run: no restart today
 
   cur=$(sh "$DIR/nidus-state.sh")
   [ "$cur" = "$ST" ] || { ST=$cur SINCE=$NOW ALERTED=0; }
   dur=$((NOW - SINCE))
   if [ "$cur" = idle ]; then IDLE=$((IDLE + 1)); else IDLE=0; fi
+  if [ "$cur" = off ] || tg_up; then TGDOWN=0; else TGDOWN=$((TGDOWN + 1)); fi
+  [ "$TGDOWN" = $TG_DOWN_ALERT ] && { tg "Telegram 연결이 ${TG_DOWN_ALERT}분째 끊겨 있다. 세션이 바쁘거나 재시작 한도에 걸려 아직 복구하지 못했다." || true; }
 
   case $cur in
   off) restart_crashed ;;
   waiting) [ "$dur" -ge $WAIT_ALERT ] && [ "$ALERTED" = 0 ] && tg "승인 대기 화면에서 $((dur / 60))분째 멈춰 있다. tmux attach -t nidus 로 확인해 줘." && ALERTED=1 ;;
   working) [ "$dur" -ge $WORK_ALERT ] && [ "$ALERTED" = 0 ] && tg "$((dur / 60))분째 작업 중이다. 멈췄을 수 있으니 확인해 줘." && ALERTED=1 ;;
-  idle) daily_restart ;;
+  idle) restart_idle ;;
   esac
 
   # Rewrite only on change: system/ sits in the vault (git, Obsidian).
-  printf '%s %s %s %s %s %s\n' "$ST" "$SINCE" "$ALERTED" "$DAILY" "$HANDOFF" "$IDLE" >"$STATEF.tmp"
+  printf '%s %s %s %s %s %s %s %s\n' "$ST" "$SINCE" "$ALERTED" "$DAILY" "$HANDOFF" "$IDLE" "$TGDOWN" "$REASON" >"$STATEF.tmp"
   if cmp -s "$STATEF.tmp" "$STATEF"; then rm -f "$STATEF.tmp"; else mv "$STATEF.tmp" "$STATEF"; fi
 }
 
-restart_crashed() {
+# Telegram channel = the plugin's server.ts process, which keeps its pid in bot.pid while running and removes it on exit.
+tg_up() {
+  pid=$(num "$(cat "$TG_DIR/bot.pid" 2>/dev/null)" 0)
+  [ "$pid" -gt 1 ] && ps -p "$pid" -o args= 2>/dev/null | grep -q server.ts
+}
+
+# Shared crash-loop cap for every unplanned restart (crash or Telegram drop).
+capped() {
   f=$SYS/restarts
   touch "$f"
   awk -v t=$((NOW - WINDOW)) '$1 > t' "$f" >"$f.tmp" && mv "$f.tmp" "$f"
-  if [ "$(wc -l <"$f")" -ge $MAX ]; then
+  [ "$(wc -l <"$f")" -ge $MAX ]
+}
+
+restart_crashed() {
+  if capped; then
     event "30분 안에 재시작 ${MAX}회 → 보류 (30분 뒤 재시도)"
     [ "$ALERTED" = 0 ] && tg "세션이 30분 안에 ${MAX}번 꺼져 재시작을 멈췄다. 로그: $LOG" && ALERTED=1
     return 0
   fi
-  echo "$NOW" >>"$f"
+  echo "$NOW" >>"$SYS/restarts"
   event "세션 없음 → 재시작"
   start 1
 }
 
-daily_restart() {
+# Idle session: restart after a handoff note, for the daily refresh or a dropped Telegram channel.
+restart_idle() {
+  if [ "$HANDOFF" = 0 ]; then
+    [ "$IDLE" -ge 2 ] || return 0 # idle for two ticks in a row
+    if [ "$TGDOWN" -ge $TG_DOWN_RESTART ]; then
+      capped && return 0 # the 30-min alert above still fires
+      REASON=telegram
+    elif daily_due; then
+      REASON=daily
+    else
+      return 0
+    fi
+    tmux send-keys -t nidus -l "$HANDOFF_PROMPT"
+    sleep "${NIDUS_KEY_DELAY:-1}"
+    tmux send-keys -t nidus Enter
+    HANDOFF=$NOW
+    event "재시작 준비($REASON): handoff 요청"
+    return 0
+  fi
+  if [ "$REASON" = telegram ] && [ "$TGDOWN" = 0 ]; then # came back on its own
+    HANDOFF=0 REASON=-
+    event "Telegram 연결 복구됨 → 재시작 취소"
+    return 0
+  fi
+  h=$(stat -f %m "$SYS/handoff.md" 2>/dev/null || echo 0)
+  if [ "$h" -ge "$HANDOFF" ] || [ $((NOW - HANDOFF)) -ge $HANDOFF_TIMEOUT ]; then
+    [ "$h" -ge "$HANDOFF" ] || event "handoff.md가 15분 안에 안 써짐 → 그대로 재시작"
+    tmux kill-session -t nidus || true
+    case $REASON in
+    telegram) echo "$NOW" >>"$SYS/restarts"; event "Telegram 연결 끊김 → 재시작" ;;
+    *) DAILY=$TODAY REASON=daily; event "일일 재시작" ;;
+    esac
+    start "$REASON"
+    HANDOFF=0 ST=none SINCE=$NOW ALERTED=0 IDLE=0 TGDOWN=0 REASON=-
+  fi
+}
+
+daily_due() {
+  [ "$DAILY" != "$TODAY" ] && [ "$HOUR" -ge "$DAILY_HOUR" ] || return 1
+  if [ "$HOUR" -ge $DAILY_END ]; then
+    DAILY=$TODAY
+    event "일일 재시작 건너뜀 (${DAILY_HOUR}~${DAILY_END}시 내내 바쁨)"
+    tg "오늘 일일 재시작을 못 했다(계속 작업 중이거나 진행 중인 task가 있음). 내일 다시 시도한다." || true
+    return 1
+  fi
+  ! grep -lE '^status: *(접수|진행|검토)' "$OFFICE"/tasks/*/*/report.md >/dev/null 2>&1
+}
+
+start() {
   [ "$DAILY" = "$TODAY" ] && return 0
   [ "$HOUR" -ge "$DAILY_HOUR" ] || return 0
   if [ "$HANDOFF" = 0 ]; then
