@@ -5,9 +5,11 @@
 ## 구성
 - `skills/office` 관리자 절차(지시 → task 파일 → worker 순차 → 검토 → Telegram 보고, 반복 작업 `jobs.md` + `/loop`)
 - `skills/team-stock` 팀 예시(주식 4관점). 다른 분야는 `skills/team-<이름>`을 추가한다.
-- `agents/worker` 범용 워커(Sonnet). Telegram 도구 없음.
+- `agents/worker` 리서치 워커(Sonnet). 웹 O, `~/Developer` 쓰기 X. Telegram 도구 없음.
+- `agents/builder` 코딩 워커(Sonnet). `~/Developer` 쓰기 O, 웹 X(도구 없음 + curl·wget 차단). worker가 office에 남긴 리서치만 읽는다. 웹에서 들어온 지시가 쓰기 권한으로 바로 이어지지 않게 둘을 나눴다.
 - `bin/af-query` Asset_Frame DB 읽기 전용 조회 (`AF_DB`로 경로 변경)
-- `hooks/guard.mjs` `NIDUS_GUARD=1`일 때 office 폴더 밖 쓰기, main/force push, 자격 증명 경로 차단. office를 볼트 안(예: `<볼트>/nidus_office`)에 두면 볼트에서 그 폴더만 쓰기 허용
+- `hooks/guard.mjs` `NIDUS_GUARD=1`일 때: 쓰기는 office 폴더(누구나)와 `NIDUS_WRITABLE`(`~/Developer`, builder만)에만. `NIDUS_READONLY`(볼트, `~/Developer/nidus-plugin`, `Asset_Frame/var`)는 누구도 못 씀. main/force push, 자격 증명 경로 차단. office를 볼트 안에 두면 볼트에서 그 폴더만 쓰기 허용
+- `hooks/inbox.mjs` Stop 훅. 작업 중 온 Telegram 메시지는 `system/inbox.md`에 `- [ ]`로 적히고, 남아 있으면 응답을 끝내지 못하게 막아 처리하게 한다.
 
 ## office 폴더
 - `00.dashboard.md` 검토 대기·막힘·진행 중·최근 완료·반복 작업. 여기만 보면 된다.
@@ -23,7 +25,7 @@
    - 없으면 다시 띄워 `/loop` 재등록 + Telegram 알림. 30분에 3회까지만, 넘으면 watchdog이 Bot API로 직접 알림.
    - 승인 대기 3분, 작업 중 60분이 넘으면 Bot API로 직접 알림(멈춤 의심). 토큰은 Telegram 플러그인의 `.env`에서 읽는다.
    - 매일 06~08시(KST) 사이 대기 상태이고 진행 중 task가 없으면 `system/handoff.md`를 쓰게 한 뒤 재시작(컨텍스트 정리 + `/loop` 7일 만료 대응). 8시까지 못 하면 그날은 건너뛰고 알림.
-   - 기록: `<office>/system/events.md`. 전송 확인: `scripts/watchdog.sh notify <office 폴더> 테스트`. 로그 `~/Library/Logs/nidus-watchdog.log`. 일부러 끌 때는 먼저 `scripts/watchdog.sh uninstall`(안 그러면 1분 안에 다시 뜸). 로그인한 뒤에만 동작한다. 재시작이 확인 화면에서 멈추지 않도록 볼트는 한 번 `cd <볼트> && claude`로 신뢰해 둔다(`--add-dir` 승인은 세션마다 사라짐).
+   - 기록: `<office>/system/events.md`. 전송 확인: `scripts/watchdog.sh notify <office 폴더> 테스트`. 로그 `~/Library/Logs/nidus-watchdog.log`. 일부러 끌 때는 먼저 `scripts/watchdog.sh uninstall`(안 그러면 1분 안에 다시 뜸). 로그인한 뒤에만 동작한다. 재시작이 확인 화면에서 멈추지 않도록 볼트와 `~/Developer`는 각각 한 번 `cd <폴더> && claude`로 신뢰해 둔다(`--add-dir` 승인은 세션마다 사라짐).
 6. (선택) 메뉴바 상태: `brew install --cask swiftbar` → 플러그인 폴더 선택 → `ln -s "$PWD/scripts/nidus-status.10s.sh" <플러그인 폴더>/`. 🔴 꺼짐 · 🟡 승인 대기 · 🔵 작업 중 · 🟢 대기, 클릭하면 tmux attach·로그.
 
 ## 한계
