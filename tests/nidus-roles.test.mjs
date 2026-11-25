@@ -15,11 +15,11 @@ const plugin = join(dev, 'nidus-plugin');
 for (const d of [office, repo, plugin, join(dev, 'Asset_Frame/var')]) mkdirSync(d, { recursive: true });
 spawnSync('git', ['init', '-q', '-b', 'main'], { cwd: repo });
 const env = {
-  ...process.env, NIDUS_GUARD: '1', NIDUS_WRITABLE: dev,
+  ...process.env, NIDUS_GUARD: '1', NIDUS_WRITABLE: dev, NIDUS_OFFICE: office,
   NIDUS_READONLY: [join(root, 'vault'), plugin, join(dev, 'Asset_Frame/var')].join(':'),
 };
-const as = (agent_type) => (tool_name, tool_input) =>
-  spawnSync('node', [guard], { input: JSON.stringify({ tool_name, tool_input, cwd: office, ...(agent_type && { agent_type }) }), encoding: 'utf8', env }).status;
+const as = (agent_type, cwd = office) => (tool_name, tool_input) =>
+  spawnSync('node', [guard], { input: JSON.stringify({ tool_name, tool_input, cwd, ...(agent_type && { agent_type }) }), encoding: 'utf8', env }).status;
 const manager = as(undefined), worker = as('nidus:worker'), builder = as('nidus:builder');
 const OK = 0, NO = 2;
 
@@ -60,6 +60,30 @@ test('push from a repo on main is blocked after cd or git -C', () => {
   assert.equal(builder('Bash', { command: `cd ${repo} && git push origin nidus/t1` }), OK);
 });
 
+test('office root is fixed by NIDUS_OFFICE, not by where the shell cd-ed to', () => {
+  const inPlugin = as(undefined, plugin);
+  assert.equal(inPlugin('Edit', { file_path: join(plugin, 'plugin/hooks/guard.mjs') }), NO);
+  assert.equal(inPlugin('Write', { file_path: 'plugin/hooks/guard.mjs' }), NO);
+  assert.equal(as(undefined, repo)('Write', { file_path: 'a.js' }), NO, 'manager cd-ed into a repo still cannot write it');
+  assert.equal(as('nidus:builder', repo)('Write', { file_path: 'a.js' }), OK);
+});
+
+test('config files that get loaded and run later are not writable by anyone', () => {
+  for (const who of [manager, worker, builder]) {
+    assert.equal(who('Write', { file_path: join(office, '.claude/settings.json') }), NO);
+    assert.equal(who('Write', { file_path: join(office, 'CLAUDE.md') }), NO);
+    assert.equal(who('Write', { file_path: join(repo, '.claude/agents/x.md') }), NO);
+    assert.equal(who('Write', { file_path: join(repo, '.git/hooks/pre-commit') }), NO);
+    assert.equal(who('Bash', { command: `echo x > ${repo}/.mcp.json` }), NO);
+    assert.equal(who('Bash', { command: `cd ${repo} && git config core.hooksPath /tmp/h` }), NO);
+  }
+});
+
+test('builder identity is the exact plugin agent id', () => {
+  for (const fake of ['builder', 'evil-builder', 'x:builder', 'nidus:builder2'])
+    assert.equal(as(fake)('Write', { file_path: join(repo, 'a.js') }), NO, fake);
+});
+
 test('Stop hook refuses to stop while inbox has unchecked messages, once per stop', () => {
   const stop = (extra = {}) => spawnSync('node', [inbox], { input: JSON.stringify({ cwd: office, ...extra }), encoding: 'utf8', env }).status;
   assert.equal(stop(), OK, 'no inbox file');
@@ -69,4 +93,19 @@ test('Stop hook refuses to stop while inbox has unchecked messages, once per sto
   assert.equal(stop({ stop_hook_active: true }), OK, 'no infinite loop');
   writeFileSync(join(office, 'system/inbox.md'), '- [x] 2026-11-26 09:05 (msg 2) 새 지시 → 답장함\n');
   assert.equal(stop(), OK);
+});
+
+test('Stop hook catches Telegram messages that never reached the inbox', () => {
+  const t = join(root, 'transcript.jsonl');
+  const msg = (id) => JSON.stringify({ type: 'user', message: { role: 'user', content: `<channel source="plugin:telegram:telegram" chat_id="1" message_id="${id}" user="u" ts="t">hi</channel>` } });
+  const blob = JSON.stringify({ type: 'api-request-blob', message: { role: 'user', content: [{ type: 'text', text: '<channel source="plugin:telegram:telegram" message_id="999">' }] } });
+  writeFileSync(t, [msg(2), msg(3), blob, '{broken'].join('\n'));
+  const stop = (extra = {}) => spawnSync('node', [inbox], { input: JSON.stringify({ cwd: office, transcript_path: t, ...extra }), encoding: 'utf8', env });
+  const r = stop();
+  assert.equal(r.status, NO);
+  assert.match(r.stderr, /msg 3\)/);
+  assert.doesNotMatch(r.stderr, /999/, 'only real user entries count');
+  writeFileSync(join(office, 'system/inbox.md'), '- [x] (msg 2) a → 답장함\n- [x] (msg 3) b → 답장함\n');
+  assert.equal(stop().status, OK);
+  assert.equal(spawnSync('node', [inbox], { input: JSON.stringify({ cwd: office, transcript_path: join(root, 'none') }), encoding: 'utf8', env }).status, OK, 'missing transcript fails open');
 });

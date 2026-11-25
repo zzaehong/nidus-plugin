@@ -15,6 +15,6 @@ daily) PROMPT=" 'watchdog의 일일 재시작이다. system/handoff.md를 읽고
 *) PROMPT="" ;;
 esac
 tmux new-session -d -s nidus -c "$OFFICE" \
-  "caffeinate -i env NIDUS_GUARD=1 NIDUS_VAULT='$VAULT' NIDUS_READONLY='$VAULT:$HOME/Developer/nidus-plugin:$HOME/Developer/Asset_Frame/var' NIDUS_WRITABLE='$HOME/Developer' claude --plugin-dir '$PLUGIN' --add-dir '$VAULT' --add-dir '$HOME/Developer' \
+  "caffeinate -i env NIDUS_GUARD=1 NIDUS_OFFICE='$OFFICE' NIDUS_VAULT='$VAULT' NIDUS_READONLY='$VAULT:$HOME/Developer/nidus-plugin:$HOME/Developer/Asset_Frame/var' NIDUS_WRITABLE='$HOME/Developer' claude --plugin-dir '$PLUGIN' --add-dir '$VAULT' --add-dir '$HOME/Developer' \
    --channels plugin:telegram@claude-plugins-official --permission-mode auto --model sonnet$PROMPT"
 echo "started: tmux attach -t nidus"
