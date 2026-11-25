@@ -6,5 +6,3 @@
 - 실행: `scripts/office.sh <볼트 경로> <office 폴더>`, 자동 재시작: `scripts/watchdog.sh install <볼트 경로> <office 폴더>`
 - 테스트: `npm test`
 - 공식 문서 검증 기록: [docs/verification.md](docs/verification.md)
-
-이전 Nidus(macOS 앱·Model Gateway·VM 작업장, v0.2.0)는 `~/Developer/Nidus` 레포에 보존되어 있다.
