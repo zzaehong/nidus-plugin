@@ -14,6 +14,7 @@ WORK_ALERT=3600              # "working" this long → alert (spinner keeps redr
 export TZ=Asia/Seoul         # daily window is in KST regardless of the system setting
 DAILY_HOUR=6 DAILY_END=8 HANDOFF_TIMEOUT=900 # daily restart only between 06:00 and 08:00
 TG_DIR=${NIDUS_TG_DIR:-$HOME/.claude/channels/telegram}
+REQUEST_WAIT=600 # a session-written restart-request is honored when idle, or after this long regardless
 TG_DOWN_RESTART=2 TG_DOWN_ALERT=30 # ticks (minutes) the channel is gone before restarting / alerting
 HANDOFF_PROMPT='watchdog 재시작 준비다. 다음 세션이 이어받을 내용(진행 중인 대화, 미완료 지시, 주의할 점)을 system/handoff.md에 덮어써라. 없으면 없음이라고 적어라. 새 작업은 시작하지 말고 Telegram으로 보내지 마라.'
 
@@ -40,8 +41,14 @@ check() {
   if [ "$cur" = off ] || tg_up; then TGDOWN=0; else TGDOWN=$((TGDOWN + 1)); fi
   [ "$TGDOWN" = $TG_DOWN_ALERT ] && { tg "Telegram 연결이 ${TG_DOWN_ALERT}분째 끊겨 있다. 세션이 바쁘거나 재시작 한도에 걸려 아직 복구하지 못했다." || true; }
 
+  # The session asks for its own restart by writing system/restart-request (after handoff.md); see office skill.
+  if [ -f "$SYS/restart-request" ] && [ "$cur" != off ]; then
+    age=$((NOW - $(stat -f %m "$SYS/restart-request" 2>/dev/null || echo "$NOW")))
+    if [ "$cur" = idle ] || [ "$age" -ge $REQUEST_WAIT ]; then restart_requested; cur=handled; fi
+  fi
+
   case $cur in
-  off) restart_crashed ;;
+  off) rm -f "$SYS/restart-request"; restart_crashed ;;
   waiting) [ "$dur" -ge $WAIT_ALERT ] && [ "$ALERTED" = 0 ] && tg "승인 대기 화면에서 $((dur / 60))분째 멈춰 있다. tmux attach -t nidus 로 확인해 줘." && ALERTED=1 ;;
   working) [ "$dur" -ge $WORK_ALERT ] && [ "$ALERTED" = 0 ] && tg "$((dur / 60))분째 작업 중이다. 멈췄을 수 있으니 확인해 줘." && ALERTED=1 ;;
   idle) restart_idle ;;
@@ -64,6 +71,20 @@ capped() {
   touch "$f"
   awk -v t=$((NOW - WINDOW)) '$1 > t' "$f" >"$f.tmp" && mv "$f.tmp" "$f"
   [ "$(wc -l <"$f")" -ge $MAX ]
+}
+
+restart_requested() {
+  rm -f "$SYS/restart-request" # contents are never read: the session can write it, so only its presence counts
+  if capped; then
+    event "세션의 재시작 요청 → 재시작 한도라 보류"
+    tg "세션이 재시작을 요청했지만 30분 안에 재시작이 ${MAX}번 있어 보류했다. tmux attach -t nidus 로 확인해 줘." || true
+    return 0
+  fi
+  echo "$NOW" >>"$SYS/restarts"
+  tmux kill-session -t nidus || true
+  event "세션의 재시작 요청 → 재시작"
+  start request
+  HANDOFF=0 ST=none SINCE=$NOW ALERTED=0 IDLE=0 TGDOWN=0 REASON=-
 }
 
 restart_crashed() {

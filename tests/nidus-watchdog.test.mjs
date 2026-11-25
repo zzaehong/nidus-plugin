@@ -186,3 +186,30 @@ test('Telegram restarts share the crash cap', () => {
   for (let m = 0; m < 5; m++) s.tick(T0 + m * 60);
   assert.deepEqual(s.lines('tmux.log'), []);
 });
+
+test('session restart-request: honored when idle, waits while working (up to 10 min), shares the cap', () => {
+  const s = sandbox();
+  s.set(true, WORKING);
+  s.tick(T0);
+  writeFileSync(join(s.office, 'system/restart-request'), '');
+  utimesSync(join(s.office, 'system/restart-request'), T0, T0);
+  s.tick(T0 + 60);
+  assert.deepEqual(s.lines('starts'), [], 'working: wait');
+  s.set(true, IDLE);
+  s.tick(T0 + 120);
+  assert.deepEqual(s.lines('starts'), ['request']);
+  assert.ok(!existsSync(join(s.office, 'system/restart-request')), 'request consumed');
+
+  s.set(true, WORKING);
+  writeFileSync(join(s.office, 'system/restart-request'), '');
+  utimesSync(join(s.office, 'system/restart-request'), T0 + 200, T0 + 200);
+  s.tick(T0 + 200 + 600);
+  assert.deepEqual(s.lines('starts'), ['request', 'request'], 'still working after 10 min: restart anyway');
+
+  writeFileSync(join(s.office, 'system/restarts'), [1, 2, 3].map((k) => T0 + 800 + k).join('\n') + '\n');
+  s.set(true, IDLE);
+  writeFileSync(join(s.office, 'system/restart-request'), '');
+  s.tick(T0 + 900);
+  assert.deepEqual(s.lines('starts'), ['request', 'request'], 'capped');
+  assert.match(s.lines('curl.log').at(-1), /보류/);
+});
