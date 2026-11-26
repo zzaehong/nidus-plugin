@@ -37,6 +37,8 @@ export function checkBash(cmd, cwd, builder = false, office = cwd) {
     if (refs.length < 2 && PROTECTED.test(branchOf(repo))) return 'main/master 브랜치에서 push 금지';
   }
   if (SECRETS.test(cmd)) return '자격 증명 경로 접근 금지';
+  // shortcut: only catches commands that name the path; `grep -r` on a parent folder still reads it. Upgrade with a sandbox.
+  for (const n of noreadPaths()) if (mentions(cmd, n)) return `읽기 금지 경로: ${n}`;
   if (GIT_CONFIG_RUN.test(cmd)) return '실행되는 git 설정(hooksPath·fsmonitor·alias 등) 변경 금지';
   // shortcut: keyword lists, same limits as below; scripts or other languages can still reach the network or write.
   if (builder && /(^|[\s;&|(])(curl|wget|nc|ncat|telnet|lynx|w3m|aria2c|http|https)\s/.test(cmd))
@@ -58,15 +60,31 @@ const mentions = (cmd, p) => cmd.includes(p) || (HOME && inside(p, HOME) && cmd.
 const WRITES =/(>|\brm\b|\bmv\b|\bcp\b|\btee\b|\bsed\s+-i|\btouch\b|\bmkdir\b|(^|[\s;&|(])sqlite3\s+(?!.*(-readonly|mode=ro)))/;
 const writablePaths = () => (process.env.NIDUS_WRITABLE ?? '').split(':').filter(Boolean);
 const readonlyPaths = () => (process.env.NIDUS_READONLY ?? '').split(':').filter(Boolean);
+const noreadPaths = () => (process.env.NIDUS_NOREAD ?? '').split(':').filter(Boolean);
 function inside(p, root) { return p === root || p.startsWith(root + sep); }
-
-export function checkWrite(path, cwd, builder = false, office = cwd) {
+function realOf(path, cwd) {
   const abs = resolve(cwd, path);
   let p = abs;
   while (!existsSync(p) && dirname(p) !== p) p = dirname(p); // resolve symlinks of nearest existing parent
-  const real = resolve(realpathSync(p), abs.slice(p.length + 1));
+  return resolve(realpathSync(p), abs.slice(p.length + 1));
+}
+const noreadHit = (real, search) =>
+  noreadPaths().find((n) => { const r = realOf(n, '/'); return inside(real, r) || (search && inside(r, real)); });
+
+// search=true (Grep/Glob): a search rooted above a noread path would still return its contents, so that counts too.
+export function checkRead(path, cwd, search = false) {
+  const real = realOf(path, cwd);
+  if (SECRETS.test(real)) return '자격 증명 경로 읽기 금지';
+  const n = noreadHit(real, search);
+  return n ? `읽기 금지 경로: ${n}${search ? ' (이 경로를 포함하지 않는 하위 폴더를 지정해 검색하라)' : ''}` : null;
+}
+
+export function checkWrite(path, cwd, builder = false, office = cwd) {
+  const real = realOf(path, cwd);
   const root = realpathSync(office);
   if (SECRETS.test(real)) return '자격 증명 경로 쓰기 금지';
+  const n = noreadHit(real, false);
+  if (n) return `읽기 금지 경로: ${n}`;
   if (CONFIG.test(real)) return `.claude/·CLAUDE.md·.mcp.json·.git/hooks 쓰기 금지: ${real}`;
   if (inside(real, root)) return null; // office folder, even when it sits inside the read-only vault
   const ro = readonlyPaths().find((r) => inside(real, r));
@@ -86,7 +104,9 @@ export function decide(input) {
   if (input.tool_name === 'Bash') return checkBash(ti.command ?? '', input.cwd, builder, office);
   if (['Write', 'Edit', 'NotebookEdit'].includes(input.tool_name))
     return checkWrite(ti.file_path ?? ti.notebook_path ?? '', input.cwd, builder, office);
-  if (input.tool_name === 'Read' && SECRETS.test(ti.file_path ?? '')) return '자격 증명 경로 읽기 금지';
+  const cwd = input.cwd || office;
+  if (input.tool_name === 'Read') return checkRead(ti.file_path ?? '', cwd);
+  if (['Grep', 'Glob'].includes(input.tool_name)) return checkRead(ti.path || cwd, cwd, true);
   return null;
 }
 

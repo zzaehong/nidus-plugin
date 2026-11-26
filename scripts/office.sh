@@ -7,10 +7,19 @@ mkdir -p "$2"
 OFFICE=$(cd "$2" && pwd)
 PLUGIN=$(cd "$(dirname "$0")/../plugin" && pwd)
 REPO=$(dirname "$PLUGIN")
-DEV=${NIDUS_DEV:-$HOME/Developer} # builder may write here
-# Nobody writes the vault, this repo (hooks/agents), or the launchd plist that holds these settings.
-RO=$VAULT:$REPO:$HOME/Library/LaunchAgents${NIDUS_EXTRA_READONLY:+:$NIDUS_EXTRA_READONLY}
-mkdir -p "$DEV" "$OFFICE/tasks" "$OFFICE/outputs" "$OFFICE/system"
+. "$REPO/scripts/nidus-config.sh"
+WR=$(conf_paths writable) # separate lines: in one multi-assignment set -e only sees the last failure
+RO_USER=$(conf_paths readonly)
+NOREAD=$(conf_paths noread)
+WR=${WR:-$HOME/Developer} # builder may write here
+case ":$WR:" in *":$HOME:"*) echo "nidus config writable: 홈 폴더 전체는 안 됨 (.zshrc 같은 실행 파일이 들어 있음)" >&2; exit 2 ;; esac
+# Fixed and not removable by config: the vault, this repo (hooks/agents), the config itself, launchd plists.
+RO=$VAULT:$REPO:$(dirname "$NIDUS_CONFIG"):$HOME/Library/LaunchAgents${RO_USER:+:$RO_USER}
+ADD=""
+IFS=: && set -f
+for d in $WR; do mkdir -p "$d"; ADD="$ADD --add-dir '$d'"; done
+unset IFS && set +f
+mkdir -p "$OFFICE/tasks" "$OFFICE/outputs" "$OFFICE/system"
 touch "$OFFICE/jobs.md" "$OFFICE/system/chat.md"
 # SessionStart only adds context, so after a watchdog restart nothing re-registers /loop until a prompt arrives.
 case ${NIDUS_RESTARTED:-} in
@@ -21,6 +30,6 @@ request) PROMPT=" '직전 세션의 요청으로 watchdog이 세션을 다시 �
 *) PROMPT="" ;;
 esac
 tmux new-session -d -s nidus -c "$OFFICE" \
-  "caffeinate -i env NIDUS_GUARD=1 NIDUS_WATCHDOG='$REPO/scripts/watchdog.sh' NIDUS_OFFICE='$OFFICE' NIDUS_VAULT='$VAULT' NIDUS_READONLY='$RO' NIDUS_WRITABLE='$DEV' claude --plugin-dir '$PLUGIN' --add-dir '$VAULT' --add-dir '$DEV' \
+  "caffeinate -i env NIDUS_GUARD=1 NIDUS_WATCHDOG='$REPO/scripts/watchdog.sh' NIDUS_OFFICE='$OFFICE' NIDUS_VAULT='$VAULT' NIDUS_READONLY='$RO' NIDUS_WRITABLE='$WR' NIDUS_NOREAD='$NOREAD' claude --plugin-dir '$PLUGIN' --add-dir '$VAULT'$ADD \
    --channels plugin:telegram@claude-plugins-official --permission-mode auto --model sonnet$PROMPT"
 echo "started: tmux attach -t nidus"

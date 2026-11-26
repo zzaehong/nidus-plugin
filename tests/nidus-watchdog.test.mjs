@@ -36,7 +36,7 @@ esac`);
   const tick = (now) => {
     const r = spawnSync('sh', [watchdog, 'check', '/vault', office], {
       encoding: 'utf8',
-      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, OFFICE_SH: p('office.sh'), NIDUS_NOW: String(now), NIDUS_TG_ENV: p('tg.env'), NIDUS_TG_DIR: p('tg'), NIDUS_KEY_DELAY: '0' },
+      env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, OFFICE_SH: p('office.sh'), NIDUS_NOW: String(now), NIDUS_TG_ENV: p('tg.env'), NIDUS_TG_DIR: p('tg'), NIDUS_KEY_DELAY: '0', NIDUS_CONFIG: p('no-config') },
     });
     assert.equal(r.status, 0, r.stderr + r.stdout);
   };

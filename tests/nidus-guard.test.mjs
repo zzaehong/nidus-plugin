@@ -66,3 +66,24 @@ test('office folder inside the vault is writable, rest of the vault is not', () 
 test('guard is inactive without NIDUS_GUARD', () => {
   allowed(run('Bash', { command: 'git push origin main' }, {}, { ...process.env, NIDUS_GUARD: '' }));
 });
+
+test('noread: Read, Write, Bash mention, and Grep/Glob inside or above it are blocked', () => {
+  const home = realpathSync(mkdtempSync(join(tmpdir(), 'nidus-home-')));
+  const secret = join(home, 'Documents/private');
+  const e = { ...env, NIDUS_NOREAD: secret };
+  blocked(run('Read', { file_path: join(secret, 'diary.md') }, {}, e));
+  blocked(run('Write', { file_path: join(secret, 'x.md') }, {}, e));
+  blocked(run('Bash', { command: `cat ${secret}/diary.md` }, {}, e));
+  blocked(run('Grep', { pattern: 'x', path: secret }, {}, e));
+  blocked(run('Grep', { pattern: 'x', path: home }, {}, e), 'search above it would return its contents');
+  blocked(run('Glob', { pattern: '**/*.md', path: join(home, 'Documents') }, {}, e));
+  allowed(run('Grep', { pattern: 'x', path: join(home, 'Downloads') }, {}, e));
+  allowed(run('Read', { file_path: join(home, 'Documents/public.md') }, {}, e));
+  allowed(run('Grep', { pattern: 'x' }, {}, e), 'no path = cwd, unrelated to noread');
+});
+
+test('read-only beats writable even for builder (writable = vault does nothing)', () => {
+  const e = { ...env, NIDUS_WRITABLE: vault };
+  blocked(run('Write', { file_path: join(vault, 'note.md') }, { agent_type: 'nidus:builder' }, e));
+  blocked(run('Bash', { command: `echo x > ${vault}/note.md` }, { agent_type: 'nidus:builder' }, e));
+});
