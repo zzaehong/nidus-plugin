@@ -10,7 +10,7 @@ REPO=$(dirname "$PLUGIN")
 DEV=${NIDUS_DEV:-$HOME/Developer} # builder may write here
 # Nobody writes the vault, this repo (hooks/agents), or the launchd plist that holds these settings.
 RO=$VAULT:$REPO:$HOME/Library/LaunchAgents${NIDUS_EXTRA_READONLY:+:$NIDUS_EXTRA_READONLY}
-mkdir -p "$OFFICE/tasks" "$OFFICE/outputs" "$OFFICE/system"
+mkdir -p "$DEV" "$OFFICE/tasks" "$OFFICE/outputs" "$OFFICE/system"
 touch "$OFFICE/jobs.md" "$OFFICE/system/chat.md"
 # SessionStart only adds context, so after a watchdog restart nothing re-registers /loop until a prompt arrives.
 case ${NIDUS_RESTARTED:-} in

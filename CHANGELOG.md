@@ -18,7 +18,7 @@
 - office 경로는 필수 인자(기본값 없음). office를 볼트 안에 두면 볼트에서 그 폴더만 쓰기 허용.
 - 볼트 내용이 웹 요청으로 나가는 것은 프롬프트 규칙과 검토로 제한(코드 차단 없음).
 - guard: office 위치를 `NIDUS_OFFICE`로 고정, `.claude/`·`CLAUDE.md`·`.mcp.json`·`.git/hooks` 쓰기 차단, builder 식별 완전 일치.
-- 프롬프트의 개인 이름을 "사용자"로, 개인 경로(`~/Developer/nidus-plugin`, Asset_Frame DB)를 설정값으로 바꿈. 기존 outputs 문서의 "재홍이 확인할 점" 제목은 그대로 둬도 된다.
+- 프롬프트의 개인 이름을 "사용자"로, 개인 경로(`~/Developer/nidus-plugin`, Asset_Frame DB)를 설정값으로 바꿈. 이전 버전 outputs 문서의 "확인할 점" 제목은 그대로 둬도 된다.
 - 0.2.0에서 올리는 경우: 시세 DB 같은 경로를 계속 보호하려면 `NIDUS_EXTRA_READONLY`를 붙여 `watchdog.sh install`을 다시 실행한다.
 
 ## 0.2.0 — 2026-11-24

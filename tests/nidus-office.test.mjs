@@ -28,8 +28,9 @@ test('read-only list: absolute vault, this repo, launchd plist folder; no empty 
 });
 
 test('NIDUS_EXTRA_READONLY and NIDUS_DEV are carried into the session', () => {
-  const { ro, dev, cmd } = launch({ NIDUS_EXTRA_READONLY: '/data/a:/data/b', NIDUS_DEV: '/code' });
+  const code = join(realpathSync(mkdtempSync(join(tmpdir(), 'nidus-dev-'))), 'code'); // office.sh creates it
+  const { ro, dev, cmd } = launch({ NIDUS_EXTRA_READONLY: '/data/a:/data/b', NIDUS_DEV: code });
   assert.deepEqual(ro.slice(-2), ['/data/a', '/data/b']);
-  assert.equal(dev, '/code');
-  assert.ok(cmd.includes("--add-dir '/code'"));
+  assert.equal(dev, code);
+  assert.ok(cmd.includes(`--add-dir '${code}'`));
 });

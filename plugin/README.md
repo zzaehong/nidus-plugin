@@ -27,7 +27,7 @@
    - Telegram 연결이 끊기면(플러그인 `bot.pid`의 server.ts 프로세스가 없음) 2분 뒤 대기 상태일 때 handoff 후 재시작. 작업 중이면 끝날 때까지 기다리고, 30분 넘게 끊겨 있으면 Bot API로 직접 알림. 재시작 상한은 오류 재시작과 공유. 메뉴바는 🟠.
    - 세션이 스스로 재시작을 요청할 수 있다: `handoff.md`를 쓰고 `system/restart-request`를 만들면 대기 상태일 때(늦어도 10분 뒤) 재시작. 세션은 `$NIDUS_WATCHDOG notify`로 Telegram 채널 없이도 알림을 보낼 수 있다. 절차는 office 스킬 "Telegram이 안 될 때".
    - 매일 06~08시(`NIDUS_TZ`, 기본 Asia/Seoul) 사이 대기 상태이고 진행 중 task가 없으면 `system/handoff.md`를 쓰게 한 뒤 재시작(컨텍스트 정리 + `/loop` 7일 만료 대응). 재시작한 세션은 이어 간 일을 Telegram으로 알림. 8시까지 못 하면 그날은 건너뛰고 알림.
-   - 기록: `<office>/system/events.md`. 전송 확인: `scripts/watchdog.sh notify <office 폴더> 테스트`. 로그 `~/Library/Logs/nidus-watchdog.log`. 일부러 끌 때는 먼저 `scripts/watchdog.sh uninstall`(안 그러면 1분 안에 다시 뜸). 로그인한 뒤에만 동작한다. 재시작이 확인 화면에서 멈추지 않도록 볼트와 `~/Developer`는 각각 한 번 `cd <폴더> && claude`로 신뢰해 둔다(`--add-dir` 승인은 세션마다 사라짐).
+   - 기록: `<office>/system/events.md`. 전송 확인: `scripts/watchdog.sh notify <office 폴더> 테스트`. 로그 `~/Library/Logs/nidus-watchdog.log`. 일부러 끌 때는 먼저 `scripts/watchdog.sh uninstall`(안 그러면 1분 안에 다시 뜸). 로그인한 뒤에만 동작한다. 재시작이 확인 화면에서 멈추지 않도록 볼트와 `NIDUS_DEV` 폴더(기본 `~/Developer`)는 각각 한 번 `cd <폴더> && claude`로 신뢰해 둔다(`--add-dir` 승인은 세션마다 사라짐).
 6. (선택) 메뉴바 상태: `brew install --cask swiftbar` → 플러그인 폴더 선택 → `ln -s "$PWD/scripts/nidus-status.10s.sh" <플러그인 폴더>/`. 🔴 꺼짐 · 🟡 승인 대기 · 🔵 작업 중 · 🟢 대기, 클릭하면 tmux attach·로그.
 
 ## 설정 (환경 변수, 모두 선택)
