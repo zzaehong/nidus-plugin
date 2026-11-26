@@ -1,11 +1,15 @@
 #!/bin/sh
 # Start the always-on Nidus office session in tmux. usage: scripts/office.sh <vault path> <office dir>
 set -eu
-[ $# -ge 2 ] || { echo "usage: $0 <vault path> <office dir>" >&2; exit 2; }
-VAULT=$1
+[ $# -ge 2 ] && [ -d "$1" ] || { echo "usage: $0 <vault path> <office dir>" >&2; exit 2; }
+VAULT=$(cd "$1" && pwd) # guard compares absolute paths
 mkdir -p "$2"
 OFFICE=$(cd "$2" && pwd)
 PLUGIN=$(cd "$(dirname "$0")/../plugin" && pwd)
+REPO=$(dirname "$PLUGIN")
+DEV=${NIDUS_DEV:-$HOME/Developer} # builder may write here
+# Nobody writes the vault, this repo (hooks/agents), or the launchd plist that holds these settings.
+RO=$VAULT:$REPO:$HOME/Library/LaunchAgents${NIDUS_EXTRA_READONLY:+:$NIDUS_EXTRA_READONLY}
 mkdir -p "$OFFICE/tasks" "$OFFICE/outputs" "$OFFICE/system"
 touch "$OFFICE/jobs.md" "$OFFICE/system/chat.md"
 # SessionStart only adds context, so after a watchdog restart nothing re-registers /loop until a prompt arrives.
@@ -17,6 +21,6 @@ request) PROMPT=" '직전 세션의 요청으로 watchdog이 세션을 다시 �
 *) PROMPT="" ;;
 esac
 tmux new-session -d -s nidus -c "$OFFICE" \
-  "caffeinate -i env NIDUS_GUARD=1 NIDUS_WATCHDOG='$PLUGIN/../scripts/watchdog.sh' NIDUS_OFFICE='$OFFICE' NIDUS_VAULT='$VAULT' NIDUS_READONLY='$VAULT:$HOME/Developer/nidus-plugin:$HOME/Developer/Asset_Frame/var' NIDUS_WRITABLE='$HOME/Developer' claude --plugin-dir '$PLUGIN' --add-dir '$VAULT' --add-dir '$HOME/Developer' \
+  "caffeinate -i env NIDUS_GUARD=1 NIDUS_WATCHDOG='$REPO/scripts/watchdog.sh' NIDUS_OFFICE='$OFFICE' NIDUS_VAULT='$VAULT' NIDUS_READONLY='$RO' NIDUS_WRITABLE='$DEV' claude --plugin-dir '$PLUGIN' --add-dir '$VAULT' --add-dir '$DEV' \
    --channels plugin:telegram@claude-plugins-official --permission-mode auto --model sonnet$PROMPT"
 echo "started: tmux attach -t nidus"

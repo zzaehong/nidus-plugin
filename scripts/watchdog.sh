@@ -11,7 +11,7 @@ LOG=$HOME/Library/Logs/nidus-watchdog.log
 MAX=3 WINDOW=1800            # at most 3 crash restarts per 30 min, so a crash loop can't burn usage limits
 WAIT_ALERT=180               # approval prompt open this long → alert
 WORK_ALERT=3600              # "working" this long → alert (spinner keeps redrawing even when stuck, so time is the signal)
-export TZ=Asia/Seoul         # daily window is in KST regardless of the system setting
+export TZ=${NIDUS_TZ:-Asia/Seoul} # daily window is in this zone regardless of the system setting
 DAILY_HOUR=6 DAILY_END=8 HANDOFF_TIMEOUT=900 # daily restart only between 06:00 and 08:00
 TG_DIR=${NIDUS_TG_DIR:-$HOME/.claude/channels/telegram}
 REQUEST_WAIT=600 # a session-written restart-request is honored when idle, or after this long regardless
@@ -218,6 +218,13 @@ install)
     case $d in *fnm_multishells*) d=${FNM_DIR:-$HOME/.local/share/fnm}/aliases/default/bin ;; esac # per-shell fnm dir vanishes
     P=$P$d:
   done
+  # office.sh is re-run by launchd, so optional settings are baked in here (not in the office, which the session can write).
+  CONF=""
+  for k in NIDUS_DEV NIDUS_EXTRA_READONLY NIDUS_TZ; do
+    eval "v=\${$k:-}"
+    if [ -n "$v" ]; then CONF="$CONF    <key>$k</key><string>$v</string>
+"; fi
+  done
   mkdir -p "$(dirname "$PLIST")" "$(dirname "$LOG")"
   # shortcut: paths go into XML unescaped; a vault path containing & or < breaks the plist.
   cat >"$PLIST" <<EOF
@@ -232,7 +239,7 @@ install)
   <key>EnvironmentVariables</key><dict>
     <key>PATH</key><string>${P}/usr/bin:/bin:/usr/sbin:/sbin</string>
     <key>LANG</key><string>en_US.UTF-8</string>
-  </dict>
+$CONF  </dict>
   <key>RunAtLoad</key><true/>
   <key>StartInterval</key><integer>60</integer>
   <key>StandardOutPath</key><string>$LOG</string>

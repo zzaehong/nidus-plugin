@@ -1,5 +1,8 @@
 {
   "name": "nidus",
-  "version": "0.2.0",
-  "description": "상시 관리자 세션(Telegram) + 순차 워커 팀 + 자동 검토. Obsidian vault는 읽기 전용 library."
+  "version": "0.3.0",
+  "description": "상시 관리자 세션(Telegram) + 순차 워커 팀 + 자동 검토. Obsidian vault는 읽기 전용 library.",
+  "author": { "name": "zzaehong" },
+  "repository": "https://github.com/zzaehong/nidus-plugin",
+  "license": "MIT"
 }
