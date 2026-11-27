@@ -50,3 +50,11 @@ test('every example team names its members with a known agent kind', () => {
     assert.ok(existsSync(join(teams, t, 'desk.md')), t);
   }
 });
+
+test('group manager can spawn the workers it manages; workers cannot spawn further', () => {
+  const fm = (n) => readFileSync(new URL(`../plugin/agents/${n}.md`, import.meta.url), 'utf8').match(/^tools: (.*)$/m)[1].split(/,\s*/);
+  assert.ok(fm('lead').includes('Agent'));
+  for (const n of ['worker', 'builder', 'redteam']) assert.ok(!fm(n).includes('Agent'), n);
+  const lead = readFileSync(new URL('../plugin/agents/lead.md', import.meta.url), 'utf8');
+  for (const a of ['nidus:worker', 'nidus:builder', 'nidus:redteam']) assert.ok(lead.includes(a), a);
+});

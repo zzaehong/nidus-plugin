@@ -24,8 +24,9 @@ rm -rf "$OFFICE/system/running" # subagents of the previous session died with it
 [ -e "$OFFICE/teams" ] || cp -R "$PLUGIN/teams" "$OFFICE/teams" # first run: example teams; later edits are the user's
 touch "$OFFICE/jobs.md" "$OFFICE/system/chat.md"
 # The status line is the only official place that exposes subscription usage; it also saves it for the manager.
+# refreshInterval: keep usage.json fresh while the main conversation is quiet and only subagents spend.
 # shortcut: the repo path is unquoted inside the JSON, so a repo path with spaces breaks the status line only.
-SETTINGS="{\"statusLine\":{\"type\":\"command\",\"command\":\"node $REPO/scripts/nidus-usage.mjs\"}}"
+SETTINGS="{\"statusLine\":{\"type\":\"command\",\"command\":\"node $REPO/scripts/nidus-usage.mjs\",\"refreshInterval\":60}}"
 # SessionStart only adds context, so after a watchdog restart nothing re-registers /loop until a prompt arrives.
 case ${NIDUS_RESTARTED:-} in
 1) PROMPT=" 'watchdog가 세션을 다시 시작했다. jobs.md의 반복 작업을 /loop로 다시 등록하고, 진행 중인 tasks를 이어 가고, 재시작 사실을 Telegram으로 알려라.'" ;;

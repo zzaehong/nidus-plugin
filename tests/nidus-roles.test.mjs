@@ -110,6 +110,16 @@ test('Stop hook catches Telegram messages that never reached the inbox', () => {
   assert.equal(spawnSync('node', [inbox], { input: JSON.stringify({ cwd: office, transcript_path: join(root, 'none') }), encoding: 'utf8', env }).status, OK, 'missing transcript fails open');
 });
 
+test('group manager (nidus:lead) writes tasks, projects, outputs and team desks, not definitions or the board', () => {
+  const lead = as('nidus:lead');
+  for (const f of ['tasks/2026-11/x/report.md', 'projects/p1/project.md', 'projects/p1/phase-1.md', 'outputs/stock/NVDA.md', 'teams/stock/desk.md'])
+    assert.equal(lead('Write', { file_path: join(office, f) }), OK, f);
+  for (const f of ['teams/stock/TEAM.md', 'board.md', 'desk.md', '00.dashboard.md', 'jobs.md', 'system/inbox.md', 'teams/stock/sub/desk.md'])
+    assert.equal(lead('Write', { file_path: join(office, f) }), NO, f);
+  assert.equal(lead('Write', { file_path: join(repo, 'a.js') }), NO, 'code is the builder\'s');
+  assert.equal(worker('Write', { file_path: join(office, 'projects/p1/project.md') }), NO, 'workers stay in tasks/');
+});
+
 test('subagents write only under office/tasks; the manager owns dashboard, outputs, teams, system', () => {
   const redteam = as('nidus:redteam');
   for (const who of [worker, builder, redteam]) {

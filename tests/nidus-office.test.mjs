@@ -55,7 +55,7 @@ test('first launch copies the example teams; later launches keep the user edits;
   const office = join(dir, 'office');
   assert.ok(existsSync(join(office, 'teams/stock/TEAM.md')));
   assert.ok(existsSync(join(office, 'teams/dev/TEAM.md')));
-  assert.match(cmd, /--settings '\{"statusLine":\{"type":"command","command":"node [^"]*scripts\/nidus-usage\.mjs"\}\}'/);
+  assert.match(cmd, /--settings '\{"statusLine":\{"type":"command","command":"node [^"]*scripts\/nidus-usage\.mjs","refreshInterval":60\}\}'/);
   writeFileSync(join(office, 'teams/stock/TEAM.md'), 'mine\n');
   mkdirSync(join(office, 'system/running'), { recursive: true });
   writeFileSync(join(office, 'system/running/old'), '');

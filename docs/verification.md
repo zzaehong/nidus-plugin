@@ -111,3 +111,12 @@
 ## 그 밖의 확인
 - `tmux display-message -p -t nidus '#{pane_current_path}'`가 office 경로를 준다 → 메뉴바(`nidus-state.sh`)가 설정 없이 `system/running/`을 찾는다.
 - **미확인**: 동시 실행 때 한도 소모(task별 `Result`의 사용량 기록으로 쌓아 측정), Red Team 1회의 비용.
+
+## 중첩 서브에이전트(그룹 관리자) — 실측 확인 (2026-11-28)
+출처: https://code.claude.com/docs/en/sub-agents (중첩은 문서 요약에서 확인), 임시 플러그인 실측(v2.1.332)
+- 서브에이전트는 기본으로 자기 서브에이전트를 띄울 수 있다(메인 아래 최대 3단, `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH`). 메인 → lead → worker는 2단이다.
+- 실제 세션과 같은 조건(대화형 tmux, `--permission-mode auto`)에서 백그라운드로 띄운 lead가 `Agent` 도구로 probe 둘을 한 메시지에 띄웠고, 둘이 동시에 돌았다. 중첩된 쪽의 PreToolUse에도 `agent_type: "tprobe:probe"`가 들어와 guard의 역할 판정이 그대로 통한다.
+- 중첩된 워커의 Write가 확인 화면 없이 통과했다(auto 모드, `~/Developer` 아래). → 0.4.0에서 미확인이던 "백그라운드 워커가 확인 화면에 걸리는지"도 이걸로 확인.
+- lead는 워커를 띄운 뒤 턴을 끝내고(SubagentStop), 워커가 끝나면 알림으로 다시 깨어난다(SubagentStart). 그래서 lead가 오래 붙잡혀 있지 않고, 상태는 desk 파일에 남기면 된다.
+- Agent teams(실험적, 세션 하나에 팀 하나, `-p`에서 안 됨, 토큰 많음)와 팀별 상시 세션(cross-session 메시지)은 검토 후 쓰지 않았다(사용자 결정: 일 단위로 띄우는 서브에이전트).
+- 직접 만든 채널은 `--dangerously-load-development-channels`가 필요하고 시작할 때 경고 화면이 떠서 무인 재시작과 맞지 않는다. Telegram은 `obsidian://` 링크를 누를 수 있게 보내지 않는다(실측, 텍스트만 옴).

@@ -31,12 +31,12 @@ check() {
 
   ST=none SINCE=$NOW ALERTED=0 DAILY=$TODAY HANDOFF=0 IDLE=0 TGDOWN=0 REASON=-
   [ -f "$STATEF" ] && read -r ST SINCE ALERTED DAILY HANDOFF IDLE TGDOWN REASON <"$STATEF" || true
-  case ${ST:-} in off | waiting | working | idle) ;; *) ST=none ;; esac
+  case ${ST:-} in off | waiting | working | background | idle) ;; *) ST=none ;; esac
   case ${REASON:-} in daily | telegram) ;; *) REASON=- ;; esac
   SINCE=$(num "${SINCE:-}" "$NOW") ALERTED=$(num "${ALERTED:-}" 0) HANDOFF=$(num "${HANDOFF:-}" 0) IDLE=$(num "${IDLE:-}" 0) TGDOWN=$(num "${TGDOWN:-}" 0)
   case ${DAILY:-} in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;; *) DAILY=$TODAY ;; esac # first run: no restart today
 
-  cur=$(NIDUS_OFFICE=$OFFICE sh "$DIR/nidus-state.sh") # counts background subagents as working
+  cur=$(NIDUS_OFFICE=$OFFICE sh "$DIR/nidus-state.sh") # background = only subagents running
   [ "$cur" = "$ST" ] || { ST=$cur SINCE=$NOW ALERTED=0; }
   dur=$((NOW - SINCE))
   if [ "$cur" = idle ]; then IDLE=$((IDLE + 1)); else IDLE=0; fi
@@ -46,12 +46,15 @@ check() {
   # The session asks for its own restart by writing system/restart-request (after handoff.md); see office skill.
   if [ -f "$SYS/restart-request" ] && [ "$cur" != off ]; then
     age=$((NOW - $(stat -f %m "$SYS/restart-request" 2>/dev/null || echo "$NOW")))
-    if [ "$cur" = idle ] || [ "$age" -ge $REQUEST_WAIT ]; then restart_requested; cur=handled; fi
+    # A busy pane is forced after REQUEST_WAIT; running subagents are not (a restart would kill them).
+    if [ "$cur" = idle ] || { [ "$cur" != background ] && [ "$age" -ge $REQUEST_WAIT ]; }; then restart_requested; cur=handled; fi
   fi
 
   case $cur in
   off) rm -f "$SYS/restart-request"; restart_crashed ;;
   waiting) [ "$dur" -ge $WAIT_ALERT ] && [ "$ALERTED" = 0 ] && tg "승인 대기 화면에서 $((dur / 60))분째 멈춰 있다. tmux attach -t nidus 로 확인해 줘." && ALERTED=1 ;;
+  # background: group managers and workers run long phases on purpose, so no stuck alert; idle restarts wait for them.
+  background) ;;
   working) [ "$dur" -ge $WORK_ALERT ] && [ "$ALERTED" = 0 ] && tg "$((dur / 60))분째 작업 중이다. 멈췄을 수 있으니 확인해 줘." && ALERTED=1 ;;
   idle) restart_idle ;;
   esac
@@ -137,16 +140,16 @@ restart_idle() {
   fi
 }
 
-# Queued tasks (status 접수, board 예약·나중) live in report.md and survive a restart, so only 진행·검토 hold it off.
+# Open tasks and project phases don't hold it off: report.md and the desk.md checklists survive a restart, and running
+# subagents already make the state background (not idle).
 daily_due() {
   [ "$DAILY" != "$TODAY" ] && [ "$HOUR" -ge "$DAILY_HOUR" ] || return 1
   if [ "$HOUR" -ge $DAILY_END ]; then
     DAILY=$TODAY
     event "일일 재시작 건너뜀 (${DAILY_HOUR}~${DAILY_END}시 내내 바쁨)"
-    tg "오늘 일일 재시작을 못 했다(계속 작업 중이거나 진행 중인 task가 있음). 내일 다시 시도한다." || true
+    tg "오늘 일일 재시작을 못 했다(계속 작업 중이었음). 내일 다시 시도한다." || true
     return 1
   fi
-  ! grep -lE '^status: *(진행|검토)' "$OFFICE"/tasks/*/*/report.md >/dev/null 2>&1
 }
 
 start() {
@@ -156,11 +159,10 @@ start() {
     if [ "$HOUR" -ge $DAILY_END ]; then
       DAILY=$TODAY
       event "일일 재시작 건너뜀 (${DAILY_HOUR}~${DAILY_END}시 내내 바쁨)"
-      tg "오늘 일일 재시작을 못 했다(계속 작업 중이거나 진행 중인 task가 있음). 내일 다시 시도한다." || true
+      tg "오늘 일일 재시작을 못 했다(계속 작업 중이었음). 내일 다시 시도한다." || true
       return 0
     fi
     [ "$IDLE" -ge 2 ] || return 0 # idle for two ticks in a row
-    grep -lE '^status: *(진행|검토)' "$OFFICE"/tasks/*/*/report.md >/dev/null 2>&1 && return 0
     tmux send-keys -t nidus -l "$HANDOFF_PROMPT"
     sleep "${NIDUS_KEY_DELAY:-1}"
     tmux send-keys -t nidus Enter

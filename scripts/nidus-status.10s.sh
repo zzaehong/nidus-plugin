@@ -11,6 +11,7 @@ case $icon in
 off) state=꺼짐 ;;
 waiting) state="승인 대기 (attach해서 확인)" ;;
 working) state="작업 중" ;;
+background) icon=working state="작업 중 (백그라운드 워커)" ;;
 *) icon=idle state=대기 ;;
 esac
 # Telegram channel alive = plugin's server.ts still holds bot.pid (same check as watchdog.sh tg_up).

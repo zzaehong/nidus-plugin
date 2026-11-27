@@ -80,7 +80,7 @@ export function checkRead(path, cwd, search = false) {
   return n ? `읽기 금지 경로: ${n}${search ? ' (이 경로를 포함하지 않는 하위 폴더를 지정해 검색하라)' : ''}` : null;
 }
 
-export function checkWrite(path, cwd, builder = false, office = cwd, sub = builder) {
+export function checkWrite(path, cwd, builder = false, office = cwd, agent = builder ? BUILDER : '') {
   const real = realOf(path, cwd);
   const root = realpathSync(office);
   if (SECRETS.test(real)) return '자격 증명 경로 쓰기 금지';
@@ -90,12 +90,28 @@ export function checkWrite(path, cwd, builder = false, office = cwd, sub = build
   if (inside(real, root)) // office folder, even when it sits inside the read-only vault
     // Subagents (several may run at once) only write their own result files; the manager is the single writer of
     // dashboard, outputs, teams, jobs and system/, so a web-tainted worker cannot rewrite a team's principles.
-    return sub && !inside(real, join(root, 'tasks')) ? `워커는 office의 tasks/ 아래 결과 파일에만 쓴다: ${real}` : null;
+    return officeWrite(real, root, agent);
   const ro = readonlyPaths().find((r) => inside(real, r));
   if (ro) return `읽기 전용 경로 쓰기 금지: ${ro}`;
   if (writablePaths().some((w) => inside(real, w)))
     return builder ? null : `${real}: ~/Developer 쓰기는 builder만 할 수 있다 (관리자·worker는 office에만 쓴다)`;
   return `작업 폴더(${root}) 밖 쓰기 금지: ${real}`;
+}
+
+// Inside the office: the main manager writes anything; a group manager (nidus:lead) writes its work (tasks, projects,
+// outputs) and team desks but not team definitions, board, dashboard, jobs or system/; other subagents only tasks/.
+const LEAD = 'nidus:lead';
+function officeWrite(real, root, agent) {
+  if (!agent) return null;
+  const under = (d) => inside(real, join(root, d));
+  if (under('tasks')) return null;
+  if (agent === LEAD) {
+    if (under('projects') || under('outputs')) return null;
+    // shortcut: any team's desk.md, since the hook can't tell which team a lead works for.
+    if (/^teams\/[^/]+\/desk\.md$/.test(real.slice(root.length + 1))) return null;
+    return `그룹 관리자는 office의 tasks/·projects/·outputs/·teams/<팀>/desk.md에만 쓴다: ${real}`;
+  }
+  return `워커는 office의 tasks/ 아래 결과 파일에만 쓴다: ${real}`;
 }
 
 export function decide(input) {
@@ -107,7 +123,7 @@ export function decide(input) {
   if (builder && ['WebFetch', 'WebSearch'].includes(input.tool_name)) return 'builder는 웹에 접근할 수 없다';
   if (input.tool_name === 'Bash') return checkBash(ti.command ?? '', input.cwd, builder, office);
   if (['Write', 'Edit', 'NotebookEdit'].includes(input.tool_name))
-    return checkWrite(ti.file_path ?? ti.notebook_path ?? '', input.cwd, builder, office, Boolean(input.agent_type));
+    return checkWrite(ti.file_path ?? ti.notebook_path ?? '', input.cwd, builder, office, input.agent_type ?? '');
   const cwd = input.cwd || office;
   if (input.tool_name === 'Read') return checkRead(ti.file_path ?? '', cwd);
   if (['Grep', 'Glob'].includes(input.tool_name)) return checkRead(ti.path || cwd, cwd, true);

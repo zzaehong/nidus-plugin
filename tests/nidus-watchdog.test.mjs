@@ -99,14 +99,36 @@ test('daily restart: waits for idle x2, asks for handoff, restarts once handoff.
   assert.ok(readFileSync(join(s.office, 'system/events.md'), 'utf8').includes('일일 재시작'));
 });
 
-test('daily restart is skipped while a task is open', () => {
+test('daily restart waits for running subagents, not for open tasks (desk.md lets them resume)', () => {
   const s = sandbox();
   s.set(true, IDLE);
   s.tick(T0);
   writeFileSync(join(s.office, 'tasks/2026-11/2026-11-26-x/report.md'), '---\nstatus: 진행\n---\n');
+  mkdirSync(join(s.office, 'system/running'), { recursive: true });
+  writeFileSync(join(s.office, 'system/running/lead1'), 'nidus:lead x\n');
   const day2 = T0 + 27 * 3600;
-  for (let i = 0; i < 5; i++) s.tick(day2 + i * 60);
-  assert.deepEqual(s.lines('tmux.log'), []);
+  for (let i = 0; i < 3; i++) s.tick(day2 + i * 60);
+  assert.deepEqual(s.lines('tmux.log'), [], 'a group manager is running');
+  rmSync(join(s.office, 'system/running/lead1'));
+  s.tick(day2 + 180);
+  s.tick(day2 + 240);
+  assert.match(s.lines('tmux.log')[0] ?? '', /handoff\.md/, 'an open 진행 task alone does not block');
+});
+
+test('background work: no stuck alert, and a restart-request is not forced over running subagents', () => {
+  const s = sandbox();
+  s.set(true, IDLE);
+  mkdirSync(join(s.office, 'system/running'), { recursive: true });
+  writeFileSync(join(s.office, 'system/running/lead1'), 'nidus:lead x\n');
+  s.tick(T0);
+  writeFileSync(join(s.office, 'system/restart-request'), '');
+  utimesSync(join(s.office, 'system/restart-request'), T0, T0);
+  for (const m of [1, 30, 61, 90, 120]) s.tick(T0 + m * 60);
+  assert.deepEqual(s.lines('curl.log'), [], 'long phases are not "stuck"');
+  assert.deepEqual(s.lines('starts'), [], 'request waits for the subagents');
+  rmSync(join(s.office, 'system/running/lead1'));
+  s.tick(T0 + 121 * 60);
+  assert.deepEqual(s.lines('starts'), ['request']);
 });
 
 test('daily window is 06:00-08:00 KST: nothing before, skip + one alert after', () => {

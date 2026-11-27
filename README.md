@@ -21,9 +21,10 @@
 Nidus는 **항상 켜 둔 Mac에서 돌아가는 Claude Code 플러그인**입니다.
 
 - 📱 휴대폰 Telegram으로 *"NVDA 분석해 줘"*, *"이 레포에 기능 추가해 줘"*처럼 지시합니다.
-- 🧑‍💼 Mac의 **관리자 세션**이 메시지를 빠짐없이 받아 적고(inbox), 종류와 우선순위를 나눠 **Task Board**에 올린 뒤, 완료 기준을 정해 **팀**에 일을 나눠 **동시에** 돌립니다.
-- 👥 팀은 office의 `teams/<팀>/` 폴더 하나입니다. 팀마다 멤버(🔍 **worker** 리서치, 🛠️ **builder** 코딩), 맡는 폴더, 원칙, 검토 기준이 있습니다.
-- ✅ 관리자가 체크리스트로 결과를 **직접 다시 확인**하고, 😈 **Red Team**이 결론을 공격해 본 뒤 Telegram으로 보고합니다.
+- 🧑‍💼 Mac의 **메인 관리자**는 얕고 넓게 일합니다. 메시지를 빠짐없이 받아 적고(inbox), 종류와 우선순위를 나눠 **Task Board**에 올린 뒤, 팀에 맡깁니다. 오래 걸리는 큰 일은 **프로젝트**로 만들어 phase별로 굴립니다.
+- 👥 팀은 office의 `teams/<팀>/` 폴더 하나입니다. 팀마다 **그룹 관리자**(lead)가 좁고 깊게 맡아, 일을 task로 쪼개 🔍 **worker**(리서치)와 🛠️ **builder**(코딩)에게 **동시에** 맡깁니다.
+- ✅ 그룹 관리자가 완료 기준과 체크리스트로 결과를 **직접 다시 확인**하고, 😈 **Red Team**이 결론을 공격해 본 뒤 메인에게 보고합니다. 메인은 Telegram으로 알려 줍니다.
+- 📝 메인과 그룹 관리자는 각자의 **desk.md 체크리스트**에 맡은 일을 먼저 적고 끝날 때마다 표시해서, 세션이 언제 끊겨도 빠짐없이 이어 갑니다.
 - 📚 Obsidian 볼트는 **읽기 전용 자료실**로 참고하고, 결과물은 볼트 안의 office 폴더에 정리해 둡니다.
 
 API 키 없이 **Claude 구독 안의 공식 기능**(Claude Code, Channels, 플러그인)만 씁니다.
@@ -32,13 +33,14 @@ API 키 없이 **Claude 구독 안의 공식 기능**(Claude Code, Channels, 플
 flowchart LR
     U["📱 사용자<br/>Telegram"] -- 지시 --> I["📥 inbox<br/>빠짐없이 기록"]
     I -- "종류·우선순위" --> TB["📋 Task Board<br/>지금 · 빠른 일 · 예약 · 나중"]
-    TB --> M["🧑‍💼 관리자 세션<br/>Mac · tmux 상주"]
-    M -- "동시에 분배" --> T["👥 팀 폴더<br/>teams/stock · teams/dev …"]
-    T --> W["🔍 worker ×N<br/>웹 O · 코드 쓰기 X"]
-    T --> B["🛠️ builder<br/>레포당 1개 · 웹 X"]
-    W -- 결과 --> M
-    B -- 결과 --> M
-    M -- 심사 --> R["😈 Red Team<br/>Pass · Revise · Conflict"]
+    TB --> M["🧑‍💼 메인 관리자<br/>얕고 넓게 · tmux 상주"]
+    M -- "task · 프로젝트 phase" --> L["👥 그룹 관리자 (lead)<br/>팀마다 · 좁고 깊게"]
+    L --> W["🔍 worker ×N<br/>웹 O · 코드 쓰기 X"]
+    L --> B["🛠️ builder<br/>레포당 1개 · 웹 X"]
+    L -- 심사 --> R["😈 Red Team<br/>Pass · Revise · Conflict"]
+    W -- 결과 --> L
+    B -- 결과 --> L
+    L -- "검토 후 보고" --> M
     V[("📚 Obsidian 볼트<br/>읽기 전용")] -. 참고 .-> W
     M -- "검토 후 보고" --> U
     M -- 정리 --> O["🗂️ office 폴더<br/>대시보드 · 결과물"]
@@ -52,7 +54,9 @@ flowchart LR
 | 💬 | **Telegram 지시·보고** | 어디서든 메시지로 일을 맡기고, 끝나면 알림을 받습니다. 작업 중에 보낸 메시지도 inbox에 쌓여 빠짐없이 처리됩니다. |
 | 📋 | **Inbox와 Task Board** | 받은 메시지를 일 요청·운영 지시·답변·질문으로 나누고, 일은 지금·빠른 일·예약·나중 칸에 올립니다. "그건 나중에"라고 답하면 칸이 바뀝니다. |
 | 👥 | **폴더 기반 팀** | `teams/<팀>/TEAM.md` 하나로 팀을 만듭니다. 멤버, 맡는 볼트 폴더·레포, 원칙, 검토 기준을 적습니다. 리서치(worker)와 코딩(builder)은 권한을 나눠 웹에서 읽은 내용이 곧바로 코드 수정으로 이어지지 않습니다. |
-| ⚡ | **동시 처리** | 여러 일을 한꺼번에 시켜도 관리자가 나눠 동시에 돌립니다. 기다리는 동안에도 새 지시를 받습니다. |
+| ⚡ | **동시 처리** | 여러 일을 한꺼번에 시켜도 메인이 팀별 그룹 관리자에게 나눠 동시에 돌립니다. 기다리는 동안에도 새 지시를 받습니다. |
+| 🗺️ | **프로젝트와 phase** | 오래 걸리는 일은 phase(목표·끝내는 조건·맡을 팀)로 나눈 계획을 승인받아 굴립니다. 그룹 관리자가 phase를 task로 쪼개 돌리고 phase마다 보고하면, 메인이 끝내는 조건과 Red Team 심사를 보고 다음 phase로 넘어갑니다. |
+| 📝 | **desk 체크리스트** | 메인(`desk.md`)과 그룹 관리자(`teams/<팀>/desk.md`)가 맡은 일을 먼저 적고 하나씩 표시합니다. 재시작해도 남은 줄부터 이어 갑니다. |
 | 📊 | **사용량 관리** | 상태 줄이 구독 사용량(5시간·7일)을 기록하고, 관리자가 그 값을 보고 동시에 돌릴 수를 정합니다. |
 | ✅ | **완료 기준과 직접 검토** | task마다 Completion Contract(목표·범위·완료 기준·검증 방법)를 먼저 쓰고, 핵심 숫자 재조회·계산 재현·출처를 직접 확인해 기준을 모두 채워야 완료로 둡니다. |
 | 😈 | **Red Team** | 종합한 결론만 받은 별도 에이전트가 전제·취약점·반례를 공격합니다. 사람이 판단할 쟁점은 사용자에게 올립니다. |
@@ -130,9 +134,11 @@ tz = Asia/Seoul
 ```
 nidus_office/
 ├── 00.dashboard.md        ← 여기만 보면 됩니다 (검토 대기 · 막힘 · Task Board 요약 · 최근 완료)
-├── board.md               ← Task Board: 끝나지 않은 task를 우선순위 칸별로
+├── board.md               ← Task Board: 끝나지 않은 task·프로젝트를 우선순위 칸별로
+├── desk.md                ← 메인 관리자 체크리스트 (맡긴 일)
+├── projects/<id>/         ← 프로젝트 계획(project.md)과 phase 보고
 ├── jobs.md                ← 반복 작업 목록
-├── teams/<팀>/            ← 팀 정의(TEAM.md)와 팀 데스크(desk.md)
+├── teams/<팀>/            ← 팀 정의(TEAM.md)와 그룹 관리자 체크리스트(desk.md)
 ├── outputs/<분야>/<대상>.md ← 계속 갱신되는 결과물 (review: 대기 → 확인)
 ├── tasks/YYYY-MM/<id>/    ← 작업 기록 (report.md + workers/)
 └── system/                ← inbox · handoff · 사용량 · watchdog 기록
@@ -142,7 +148,7 @@ nidus_office/
 
 | 경로 | 내용 |
 |---|---|
-| [`plugin/`](plugin/) | 플러그인 본체: 스킬(office·library), 에이전트(worker·builder·redteam), 예시 팀(teams/stock·dev), 훅(guard·inbox·running) |
+| [`plugin/`](plugin/) | 플러그인 본체: 스킬(office·library), 에이전트(lead·worker·builder·redteam), 예시 팀(teams/stock·dev), 훅(guard·inbox·running) |
 | [`scripts/`](scripts/) | `office.sh` 실행, `watchdog.sh` 감시, `nidus-status.10s.sh` 메뉴바 |
 | [`tests/`](tests/) | `npm test` |
 | [`docs/verification.md`](docs/verification.md) | 공식 문서 검증과 실측 기록 (0.4.0 동시 실행·사용량 포함) |
