@@ -9,10 +9,13 @@
 - **사용량 관리**: 상태 줄이 구독 사용량(5시간·7일)을 `system/usage.json`에 남기고, 관리자가 그 값을 보고 동시 실행 수를 정한다(기준 표는 office 스킬). task마다 사용량을 기록하고 대시보드에 보여 준다.
 - **Completion Contract**: task마다 Goal·Scope·Constraints·Acceptance Criteria·Verification·Result를 먼저 쓰고, 기준을 모두 확인해야 완료로 둔다.
 - **Red Team** (`nidus:redteam`): 종합한 결론이나 코드 변경을 중간 과정 없이 받아 전제·취약점·실패 시나리오·반례를 공격하고 Pass·Revise·Conflict로 판정한다. Conflict는 사용자에게 올린다.
+- **Inbox 두 단계**: 1단계는 지금처럼 Telegram 메시지를 `system/inbox.md`에 빠짐없이 적는다. 2단계는 종류(일 요청·운영 지시·답변·질문)를 나누고, 일 요청에 우선순위(지금·빠른 일·예약·나중)를 매겨 Task Board에 올린다. 관리자가 추천하고, 사용자가 답장으로 바꿀 수 있다.
+- **Task Board** (`board.md`): 끝나지 않은 task를 우선순위 칸별로 모은 표. 원본은 각 `report.md`의 `status`·`priority`·`due`이고, 관리자는 자리가 날 때마다 board 순서대로 팀에 분배한다.
 - **돌고 있는 워커 추적**: SubagentStart/Stop 훅이 `system/running/`에 기록한다. 관리자 화면이 대기처럼 보여도 watchdog과 메뉴바는 작업 중으로 본다(돌고 있는 워커를 재시작으로 죽이지 않음).
 
 ### 바뀜
 - 워커(worker·builder·redteam)는 office의 `tasks/` 아래 결과 파일에만 쓴다. 대시보드·outputs·teams·jobs·system은 관리자만 쓴다.
+- 일일 재시작은 `진행`·`검토` task가 있을 때만 미룬다. board에서 기다리는 `접수` task는 재시작 뒤에도 이어진다.
 - `skills/team-stock`을 `teams/stock/TEAM.md`로 옮겼다. 0.3.0에서 올리면 첫 실행 때 `office/teams/`가 생긴다.
 
 ## 0.3.0 — 2026-11-27

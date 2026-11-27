@@ -12,10 +12,12 @@
 - `hooks/guard.mjs` `NIDUS_GUARD=1`일 때 [권한 설정](#권한-설정)을 지킨다. 쓰기는 office 폴더(누구나)와 `writable`(builder만)에만, `readonly`·고정 보호 경로는 누구도 못 씀, `noread`는 누구도 못 읽음. main/force push, 자격 증명 경로 차단. office를 볼트 안에 두면 볼트에서 그 폴더만 쓰기 허용
 - `hooks/running.mjs` SubagentStart/Stop 훅. 돌고 있는 워커를 `system/running/`에 적어 watchdog·메뉴바가 백그라운드 작업을 알게 한다.
 - 상태 줄 `scripts/nidus-usage.mjs`(office.sh가 `--settings`로 지정): 5시간·7일 사용량을 보여 주고 `system/usage.json`에 저장한다.
-- `hooks/inbox.mjs` Stop 훅. 작업 중 온 Telegram 메시지는 `system/inbox.md`에 `- [ ]`로 적히고, 남아 있으면 응답을 끝내지 못하게 막아 처리하게 한다.
+- `hooks/inbox.mjs` Stop 훅. 작업 중 온 Telegram 메시지는 `system/inbox.md`에 `- [ ]`로 적히고, 남아 있으면(board에 아직 안 올렸으면) 응답을 끝내지 못하게 막아 처리하게 한다.
 
 ## office 폴더
-- `00.dashboard.md` 검토 대기·막힘·진행 중·최근 완료·반복 작업. 여기만 보면 된다.
+- `00.dashboard.md` 검토 대기·막힘·Task Board 요약·최근 완료·반복 작업. 여기만 보면 된다.
+- `board.md` Task Board. 끝나지 않은 task를 지금·빠른 일·예약·나중·막힘 칸으로. 원본은 각 `report.md`의 `status`·`priority`·`due`.
+- `system/inbox.md` Inbox 1단계: 받은 Telegram 메시지를 빠짐없이 적는 기록. 2단계(종류·우선순위 나누기, board에 올리기)를 마치면 `[x]`.
 - `outputs/<분야>/<대상>.md` 결과물. 대상마다 문서 하나를 계속 갱신(현재 판단 → 확인할 점 → 변경 이력). 바뀌면 `review: 대기`, 읽고 나면 Obsidian에서 `확인`으로.
 - `teams/<팀>/TEAM.md`·`desk.md` 팀 정의와 팀의 이어받을 맥락. 워커는 못 쓰고 관리자와 사용자만 고친다.
 - `tasks/YYYY-MM/<id>/report.md` + `workers/` 작업 기록. `jobs.md` 반복 작업. `system/` chat_id·handoff·watchdog 기록.
@@ -31,7 +33,7 @@
    - "대기 상태"는 관리자 화면이 대기이고 `system/running/`에 돌고 있는 워커가 없을 때다. 백그라운드 워커가 돌면 작업 중으로 본다(메뉴바 창문도 노랑).
    - Telegram 연결이 끊기면(플러그인 `bot.pid`의 server.ts 프로세스가 없음) 2분 뒤 대기 상태일 때 handoff 후 재시작. 작업 중이면 끝날 때까지 기다리고, 30분 넘게 끊겨 있으면 Bot API로 직접 알림. 재시작 상한은 오류 재시작과 공유. 메뉴바 창문은 빨강.
    - 세션이 스스로 재시작을 요청할 수 있다: `handoff.md`를 쓰고 `system/restart-request`를 만들면 대기 상태일 때(늦어도 10분 뒤) 재시작. 세션은 `$NIDUS_WATCHDOG notify`로 Telegram 채널 없이도 알림을 보낼 수 있다. 절차는 office 스킬 "Telegram이 안 될 때".
-   - 매일 06~08시(설정 `tz`, 기본 Asia/Seoul) 사이 대기 상태이고 진행 중 task가 없으면 `system/handoff.md`를 쓰게 한 뒤 재시작(컨텍스트 정리 + `/loop` 7일 만료 대응). 재시작한 세션은 이어 간 일을 Telegram으로 알림. 8시까지 못 하면 그날은 건너뛰고 알림.
+   - 매일 06~08시(설정 `tz`, 기본 Asia/Seoul) 사이 대기 상태이고 `진행`·`검토` task가 없으면(board에서 기다리는 `접수` task는 상관없음) `system/handoff.md`를 쓰게 한 뒤 재시작(컨텍스트 정리 + `/loop` 7일 만료 대응). 재시작한 세션은 이어 간 일을 Telegram으로 알림. 8시까지 못 하면 그날은 건너뛰고 알림.
    - 기록: `<office>/system/events.md`. 전송 확인: `scripts/watchdog.sh notify <office 폴더> 테스트`. 로그 `~/Library/Logs/nidus-watchdog.log`. 일부러 끌 때는 먼저 `scripts/watchdog.sh uninstall`(안 그러면 1분 안에 다시 뜸). 로그인한 뒤에만 동작한다. 재시작이 확인 화면에서 멈추지 않도록 볼트와 `writable` 폴더(기본 `~/Developer`)는 각각 한 번 `cd <폴더> && claude`로 신뢰해 둔다(`--add-dir` 승인은 세션마다 사라짐).
 6. (선택) 메뉴바 상태: `brew install --cask swiftbar` → 플러그인 폴더 선택 → `ln -s "$PWD/scripts/nidus-status.10s.sh" <플러그인 폴더>/`. 흰 집 아이콘의 창문 색: 초록 대기 · 노랑 작업 중(불 켜고 일함) · 주황 승인 대기(사람 필요) · 빨강 Telegram 끊김 · 어두움 꺼짐, 클릭하면 tmux attach·로그.
 

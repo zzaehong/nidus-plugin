@@ -137,6 +137,7 @@ restart_idle() {
   fi
 }
 
+# Queued tasks (status 접수, board 예약·나중) live in report.md and survive a restart, so only 진행·검토 hold it off.
 daily_due() {
   [ "$DAILY" != "$TODAY" ] && [ "$HOUR" -ge "$DAILY_HOUR" ] || return 1
   if [ "$HOUR" -ge $DAILY_END ]; then
@@ -145,7 +146,7 @@ daily_due() {
     tg "오늘 일일 재시작을 못 했다(계속 작업 중이거나 진행 중인 task가 있음). 내일 다시 시도한다." || true
     return 1
   fi
-  ! grep -lE '^status: *(접수|진행|검토)' "$OFFICE"/tasks/*/*/report.md >/dev/null 2>&1
+  ! grep -lE '^status: *(진행|검토)' "$OFFICE"/tasks/*/*/report.md >/dev/null 2>&1
 }
 
 start() {
@@ -159,7 +160,7 @@ start() {
       return 0
     fi
     [ "$IDLE" -ge 2 ] || return 0 # idle for two ticks in a row
-    grep -lE '^status: *(접수|진행|검토)' "$OFFICE"/tasks/*/*/report.md >/dev/null 2>&1 && return 0
+    grep -lE '^status: *(진행|검토)' "$OFFICE"/tasks/*/*/report.md >/dev/null 2>&1 && return 0
     tmux send-keys -t nidus -l "$HANDOFF_PROMPT"
     sleep "${NIDUS_KEY_DELAY:-1}"
     tmux send-keys -t nidus Enter

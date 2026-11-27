@@ -228,3 +228,14 @@ test('background subagents running behind an idle pane count as working: no idle
   s.tick(T0 + 420);
   assert.match(s.lines('tmux.log')[0] ?? '', /handoff\.md/, 'handoff once the worker is done');
 });
+
+test('daily restart is not held off by tasks merely queued on the board (status 접수)', () => {
+  const s = sandbox();
+  s.set(true, IDLE);
+  s.tick(T0);
+  writeFileSync(join(s.office, 'tasks/2026-11/2026-11-26-x/report.md'), '---\nstatus: 접수\npriority: 나중\n---\n');
+  const day2 = T0 + 27 * 3600;
+  s.tick(day2);
+  s.tick(day2 + 60);
+  assert.match(s.lines('tmux.log')[0] ?? '', /handoff\.md/);
+});

@@ -36,7 +36,7 @@ export function problems(input) {
   const parts = [];
   if (missing.length) parts.push(`inbox에 기록되지 않은 Telegram 메시지 ${missing.length}건(msg ${missing.join(', ')})`);
   if (open) parts.push(`처리하지 않은 inbox 항목 ${open}건`);
-  return `nidus inbox: ${parts.join(', ')}이 있다. office 스킬의 "Telegram 메시지" 절차대로 system/inbox.md에 기록·처리하고 [x]로 표시하라.`;
+  return `nidus inbox: ${parts.join(', ')}이 있다. office 스킬의 "Inbox" 절차대로 system/inbox.md에 적고(1단계), 종류·우선순위를 나눠 board에 올린 뒤(2단계) [x]로 표시하라.`;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
