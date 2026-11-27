@@ -1,10 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
   <defs>
     <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#1B2233"/><stop offset="1" stop-color="#2E3A52"/>
+      <stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#F1F4F8"/>
     </linearGradient>
     <linearGradient id="wall" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#F4ECE0"/><stop offset="1" stop-color="#DCCDB8"/>
+      <stop offset="0" stop-color="#F3E8D8"/><stop offset="1" stop-color="#E2D1B9"/>
     </linearGradient>
     <linearGradient id="roof" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#E07B55"/><stop offset="1" stop-color="#BF5A3A"/>
@@ -16,18 +16,18 @@
       <stop offset="0" stop-color="#9BE0FF"/><stop offset="1" stop-color="#3FB4F5"/>
     </linearGradient>
   </defs>
-  <rect width="512" height="512" rx="112" fill="url(#sky)"/>
+  <rect x="2" y="2" width="508" height="508" rx="110" fill="url(#sky)" stroke="#E3E8EF" stroke-width="4"/>
   <!-- stars and moon: it keeps working through the night -->
-  <g fill="#F4ECE0">
+  <g fill="#B9C3D3">
     <circle cx="96" cy="104" r="4"/><circle cx="150" cy="70" r="3" opacity="0.7"/><circle cx="410" cy="150" r="3" opacity="0.7"/>
     <circle cx="70" cy="200" r="2.5" opacity="0.5"/><circle cx="440" cy="236" r="2.5" opacity="0.5"/>
   </g>
-  <path d="M392 64 a46 46 0 1 0 46 62 a36 36 0 1 1 -46 -62 Z" fill="#F7D98B"/>
+  <path d="M392 64 a46 46 0 1 0 46 62 a36 36 0 1 1 -46 -62 Z" fill="#F2C14E"/>
   <!-- ground -->
-  <ellipse cx="256" cy="428" rx="196" ry="22" fill="#141A27" opacity="0.7"/>
+  <ellipse cx="256" cy="428" rx="196" ry="22" fill="#DCE2EB"/>
   <!-- chimney, roof, walls -->
   <rect x="318" y="150" width="40" height="76" rx="6" fill="#A9472C"/>
-  <rect x="140" y="250" width="232" height="176" rx="10" fill="url(#wall)"/>
+  <rect x="140" y="250" width="232" height="176" rx="10" fill="url(#wall)" stroke="#D6C3A8" stroke-width="3"/>
   <path d="M108 262 L256 136 L404 262 Z" fill="url(#roof)" stroke="url(#roof)" stroke-width="22" stroke-linejoin="round"/>
   <!-- glowing window = status light -->
   <circle cx="214" cy="326" r="92" fill="url(#glow)"/>
