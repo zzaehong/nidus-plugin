@@ -15,8 +15,8 @@ let logo = try! String(contentsOfFile: "assets/logo.svg", encoding: .utf8)
 png(logo, px: 512, pt: 512, to: "plugin/.claude-plugin/icon.png")
 let bar = try! String(contentsOfFile: "assets/menubar.svg", encoding: .utf8)
 try! FileManager.default.createDirectory(atPath: "assets/menubar", withIntermediateDirectories: true)
-// Window light in Apple system colors: idle, working, waiting, Telegram down, off
-for (state, color) in [("idle", "#34C759"), ("working", "#0A84FF"), ("waiting", "#FFCC00"), ("tgdown", "#FF9500"), ("off", "#FF3B30")] {
+// Window light: ready = green, lights on at work = warm yellow, needs you = orange, trouble = red, nobody home = dark
+for (state, color) in [("idle", "#34C759"), ("working", "#FFCC00"), ("waiting", "#FF9500"), ("tgdown", "#FF3B30"), ("off", "#48484A")] {
   png(bar.replacingOccurrences(of: "EGG", with: color), px: 36, pt: 18, to: "assets/menubar/\(state).png")
 }
 print("ok")

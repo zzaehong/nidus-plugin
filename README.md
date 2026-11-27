@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.svg" width="140" alt="Nidus 로고: 밤에도 창문에 불이 켜진 작은 집">
+<img src="assets/logo.svg" width="140" alt="Nidus 로고: 창문에 불이 켜진 흰 집">
 
 # Nidus
 
@@ -56,12 +56,12 @@ flowchart LR
 
 ### 🚦 메뉴바 아이콘
 
-사무실(집) 창문의 불빛 색이 세션 상태를 알려 줍니다.
+사무실(집) 창문의 불빛 색이 세션 상태를 알려 줍니다. 신호등처럼 초록은 괜찮음, 노랑·주황은 일하는 중이거나 확인이 필요함, 빨강은 문제, 어두우면 꺼짐입니다.
 
 
 | <img src="assets/menubar/idle.png" width="18"><br>대기 | <img src="assets/menubar/working.png" width="18"><br>작업 중 | <img src="assets/menubar/waiting.png" width="18"><br>승인 대기 | <img src="assets/menubar/tgdown.png" width="18"><br>Telegram 끊김 | <img src="assets/menubar/off.png" width="18"><br>꺼짐 |
 |:---:|:---:|:---:|:---:|:---:|
-| 지시를 기다리는 중 | 일하는 중 | 확인이 필요함 | 곧 자동 복구 | watchdog이 다시 띄움 |
+| 지시를 기다리는 중 | 불 켜고 일하는 중 | 사람 확인이 필요함 | 연결 문제, 곧 자동 복구 | 불 꺼짐, watchdog이 다시 띄움 |
 
 ## 🔒 안전장치
 
