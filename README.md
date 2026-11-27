@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="assets/logo.svg" width="140" alt="Nidus 로고: 둥지 속 상태 불빛이 켜진 알">
+<img src="assets/logo.svg" width="140" alt="Nidus 로고: 밤에도 창문에 불이 켜진 작은 집">
 
 # Nidus
 
@@ -51,12 +51,12 @@ flowchart LR
 | 🔁 | **반복 작업** | `jobs.md`에 적어 둔 일을 `/loop`로 주기적으로 돌립니다. |
 | 🗂️ | **검토하기 쉬운 office** | `00.dashboard.md` 하나만 보면 검토할 것, 막힌 것, 진행 중인 것이 보입니다. |
 | 🐕 | **watchdog** | 세션이 꺼지거나 멈추거나 Telegram이 끊기면 알아서 재시작하고 알려 줍니다. 매일 아침에는 깨끗하게 새로 시작합니다. |
-| 🚦 | **메뉴바 상태** | 둥지 아이콘의 알 색깔로 지금 상태를 바로 확인합니다(SwiftBar). |
+| 🚦 | **메뉴바 상태** | 집 아이콘의 창문 색깔로 지금 상태를 바로 확인합니다(SwiftBar). |
 | 🔒 | **권한 설정** | 어디에 쓰고, 어디를 못 쓰고, 어디를 못 읽게 할지 설정 파일 하나로 정합니다. |
 
 ### 🚦 메뉴바 아이콘
 
-둥지 속 알의 색이 세션 상태를 알려 줍니다.
+사무실(집) 창문의 불빛 색이 세션 상태를 알려 줍니다.
 
 
 | <img src="assets/menubar/idle.png" width="18"><br>대기 | <img src="assets/menubar/working.png" width="18"><br>작업 중 | <img src="assets/menubar/waiting.png" width="18"><br>승인 대기 | <img src="assets/menubar/tgdown.png" width="18"><br>Telegram 끊김 | <img src="assets/menubar/off.png" width="18"><br>꺼짐 |

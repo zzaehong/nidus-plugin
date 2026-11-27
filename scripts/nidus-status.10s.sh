@@ -19,7 +19,7 @@ if [ "$icon" != off ] && ! { [ -n "$pid" ] && ps -p "$pid" -o args= 2>/dev/null 
   icon=tgdown state="$state · Telegram 끊김 (watchdog이 대기 상태일 때 재시작)"
 fi
 
-# Nest with a status-colored egg; drawn in assets/menubar.svg, rendered by assets/render.swift.
+# House whose window light shows the state; drawn in assets/menubar.svg, rendered by assets/render.swift.
 echo " | image=$(base64 <"$HERE/../assets/menubar/$icon.png" | tr -d '\n')"
 echo "---"
 echo "Nidus: $state"

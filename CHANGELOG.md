@@ -7,7 +7,7 @@
 - **watchdog** (`scripts/watchdog.sh`, launchd 1분 간격): 세션이 꺼지면 다시 띄우고(30분에 3회까지), 승인 대기 3분·작업 60분이 넘으면 Bot API로 직접 알림.
 - **일일 재시작**: 06~08시 대기 상태이고 진행 중 task가 없으면 `handoff.md`를 쓰게 한 뒤 재시작, 재시작한 세션이 Telegram으로 알림.
 - **Telegram 끊김 복구**: 채널 서버가 사라지면 대기 상태일 때 handoff 후 재시작. 세션이 스스로 재시작을 요청(`system/restart-request`)하거나 `watchdog.sh notify`로 채널 없이 알릴 수 있다. 장애 매뉴얼(세션용·사람용).
-- **메뉴바** (SwiftBar): 둥지 아이콘의 알 색으로 상태 표시(초록 대기 · 파랑 작업 중 · 노랑 승인 대기 · 주황 Telegram 끊김 · 빨강 꺼짐), tmux attach·로그.
+- **메뉴바** (SwiftBar): 집 아이콘의 창문 색으로 상태 표시(초록 대기 · 파랑 작업 중 · 노랑 승인 대기 · 주황 Telegram 끊김 · 빨강 꺼짐), tmux attach·로그.
 - **로고·아이콘**: `assets/logo.svg`, 플러그인 아이콘 `plugin/.claude-plugin/icon.png`, 다시 그리기는 `swift assets/render.swift`.
 - **office 구조**: `00.dashboard.md`(검토 시작점), `outputs/<분야>/<대상>.md`(계속 갱신하는 결과물, `review: 대기|확인`), `tasks/YYYY-MM/<id>/`(작업 기록), `system/`.
 - **권한 분리**: 리서치 `worker`(웹 O, 코드 쓰기 X)와 코딩 `builder`(코드 쓰기 O, 웹 X). 이 레포·볼트·추가 지정 경로는 누구도 쓰지 못함.
