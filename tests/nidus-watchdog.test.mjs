@@ -213,3 +213,18 @@ test('session restart-request: honored when idle, waits while working (up to 10 
   assert.deepEqual(s.lines('starts'), ['request', 'request'], 'capped');
   assert.match(s.lines('curl.log').at(-1), /보류/);
 });
+
+test('background subagents running behind an idle pane count as working: no idle restart', () => {
+  const s = sandbox();
+  s.set(true, IDLE);
+  s.tick(T0);
+  mkdirSync(join(s.office, 'system/running'), { recursive: true });
+  writeFileSync(join(s.office, 'system/running/a123'), 'nidus:worker 2026-11-27T00:00:00Z\n');
+  s.tgUp(false);
+  for (let m = 1; m <= 5; m++) s.tick(T0 + m * 60);
+  assert.deepEqual(s.lines('tmux.log'), [], 'no handoff while a worker runs');
+  rmSync(join(s.office, 'system/running/a123'));
+  s.tick(T0 + 360);
+  s.tick(T0 + 420);
+  assert.match(s.lines('tmux.log')[0] ?? '', /handoff\.md/, 'handoff once the worker is done');
+});

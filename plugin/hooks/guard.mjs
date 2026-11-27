@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // PreToolUse guard: stdin JSON -> exit 2 + stderr to block. Active only when NIDUS_GUARD=1 (set by scripts/office.sh).
 import { realpathSync, existsSync } from 'node:fs';
-import { resolve, dirname, sep } from 'node:path';
+import { resolve, dirname, sep, join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 const PROTECTED = /^\+?(main|master)$/;
@@ -43,6 +43,7 @@ export function checkBash(cmd, cwd, builder = false, office = cwd) {
   // shortcut: keyword lists, same limits as below; scripts or other languages can still reach the network or write.
   if (builder && /(^|[\s;&|(])(curl|wget|nc|ncat|telnet|lynx|w3m|aria2c|http|https)\s/.test(cmd))
     return 'builder는 웹에 접근할 수 없다 (리서치는 worker가 한다)';
+  // shortcut: the tasks/-only rule for subagents covers Write/Edit; a Bash redirect into office/teams still passes. Upgrade with a sandbox.
   const writes = WRITES.test(cmd.replace(/\d*>&\d|&?\d*>+\s*\/dev\/null/g, '')); // 2>&1, >/dev/null are not writes
   if (!writes) return null;
   if (CONFIG_CMD.test(cmd)) return '.claude/·CLAUDE.md·.mcp.json·.git/hooks 쓰기 금지';
@@ -79,14 +80,17 @@ export function checkRead(path, cwd, search = false) {
   return n ? `읽기 금지 경로: ${n}${search ? ' (이 경로를 포함하지 않는 하위 폴더를 지정해 검색하라)' : ''}` : null;
 }
 
-export function checkWrite(path, cwd, builder = false, office = cwd) {
+export function checkWrite(path, cwd, builder = false, office = cwd, sub = builder) {
   const real = realOf(path, cwd);
   const root = realpathSync(office);
   if (SECRETS.test(real)) return '자격 증명 경로 쓰기 금지';
   const n = noreadHit(real, false);
   if (n) return `읽기 금지 경로: ${n}`;
   if (CONFIG.test(real)) return `.claude/·CLAUDE.md·.mcp.json·.git/hooks 쓰기 금지: ${real}`;
-  if (inside(real, root)) return null; // office folder, even when it sits inside the read-only vault
+  if (inside(real, root)) // office folder, even when it sits inside the read-only vault
+    // Subagents (several may run at once) only write their own result files; the manager is the single writer of
+    // dashboard, outputs, teams, jobs and system/, so a web-tainted worker cannot rewrite a team's principles.
+    return sub && !inside(real, join(root, 'tasks')) ? `워커는 office의 tasks/ 아래 결과 파일에만 쓴다: ${real}` : null;
   const ro = readonlyPaths().find((r) => inside(real, r));
   if (ro) return `읽기 전용 경로 쓰기 금지: ${ro}`;
   if (writablePaths().some((w) => inside(real, w)))
@@ -103,7 +107,7 @@ export function decide(input) {
   if (builder && ['WebFetch', 'WebSearch'].includes(input.tool_name)) return 'builder는 웹에 접근할 수 없다';
   if (input.tool_name === 'Bash') return checkBash(ti.command ?? '', input.cwd, builder, office);
   if (['Write', 'Edit', 'NotebookEdit'].includes(input.tool_name))
-    return checkWrite(ti.file_path ?? ti.notebook_path ?? '', input.cwd, builder, office);
+    return checkWrite(ti.file_path ?? ti.notebook_path ?? '', input.cwd, builder, office, Boolean(input.agent_type));
   const cwd = input.cwd || office;
   if (input.tool_name === 'Read') return checkRead(ti.file_path ?? '', cwd);
   if (['Grep', 'Glob'].includes(input.tool_name)) return checkRead(ti.path || cwd, cwd, true);

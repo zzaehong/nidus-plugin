@@ -20,7 +20,12 @@ IFS=: && set -f
 for d in $WR; do mkdir -p "$d"; ADD="$ADD --add-dir '$d'"; done
 unset IFS && set +f
 mkdir -p "$OFFICE/tasks" "$OFFICE/outputs" "$OFFICE/system"
+rm -rf "$OFFICE/system/running" # subagents of the previous session died with it
+[ -e "$OFFICE/teams" ] || cp -R "$PLUGIN/teams" "$OFFICE/teams" # first run: example teams; later edits are the user's
 touch "$OFFICE/jobs.md" "$OFFICE/system/chat.md"
+# The status line is the only official place that exposes subscription usage; it also saves it for the manager.
+# shortcut: the repo path is unquoted inside the JSON, so a repo path with spaces breaks the status line only.
+SETTINGS="{\"statusLine\":{\"type\":\"command\",\"command\":\"node $REPO/scripts/nidus-usage.mjs\"}}"
 # SessionStart only adds context, so after a watchdog restart nothing re-registers /loop until a prompt arrives.
 case ${NIDUS_RESTARTED:-} in
 1) PROMPT=" 'watchdog가 세션을 다시 시작했다. jobs.md의 반복 작업을 /loop로 다시 등록하고, 진행 중인 tasks를 이어 가고, 재시작 사실을 Telegram으로 알려라.'" ;;
@@ -30,6 +35,6 @@ request) PROMPT=" '직전 세션의 요청으로 watchdog이 세션을 다시 �
 *) PROMPT="" ;;
 esac
 tmux new-session -d -s nidus -c "$OFFICE" \
-  "caffeinate -i env NIDUS_GUARD=1 NIDUS_WATCHDOG='$REPO/scripts/watchdog.sh' NIDUS_OFFICE='$OFFICE' NIDUS_VAULT='$VAULT' NIDUS_READONLY='$RO' NIDUS_WRITABLE='$WR' NIDUS_NOREAD='$NOREAD' claude --plugin-dir '$PLUGIN' --add-dir '$VAULT'$ADD \
+  "caffeinate -i env NIDUS_GUARD=1 NIDUS_WATCHDOG='$REPO/scripts/watchdog.sh' NIDUS_OFFICE='$OFFICE' NIDUS_VAULT='$VAULT' NIDUS_READONLY='$RO' NIDUS_WRITABLE='$WR' NIDUS_NOREAD='$NOREAD' claude --plugin-dir '$PLUGIN' --settings '$SETTINGS' --add-dir '$VAULT'$ADD \
    --channels plugin:telegram@claude-plugins-official --permission-mode auto --model sonnet$PROMPT"
 echo "started: tmux attach -t nidus"

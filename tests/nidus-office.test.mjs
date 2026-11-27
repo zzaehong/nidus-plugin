@@ -49,3 +49,18 @@ test('bad config values stop the launch', () => {
   for (const bad of ['writable = relative/path', "writable = /tmp/it's", 'readonly = /a:/b', 'noread = /', 'writable = ~', 'writable = ~/'])
     assert.notEqual(launch(() => bad + '\n').status, 0, bad);
 });
+
+test('first launch copies the example teams; later launches keep the user edits; running/ is cleared', () => {
+  const { dir, cmd } = launch();
+  const office = join(dir, 'office');
+  assert.ok(existsSync(join(office, 'teams/stock/TEAM.md')));
+  assert.ok(existsSync(join(office, 'teams/dev/TEAM.md')));
+  assert.match(cmd, /--settings '\{"statusLine":\{"type":"command","command":"node [^"]*scripts\/nidus-usage\.mjs"\}\}'/);
+  writeFileSync(join(office, 'teams/stock/TEAM.md'), 'mine\n');
+  mkdirSync(join(office, 'system/running'), { recursive: true });
+  writeFileSync(join(office, 'system/running/old'), '');
+  const r = spawnSync('sh', [script, 'vault', 'office'], { cwd: dir, encoding: 'utf8', env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, HOME: dir, NIDUS_CONFIG: '' } });
+  assert.equal(r.status, 0, r.stderr);
+  assert.equal(readFileSync(join(office, 'teams/stock/TEAM.md'), 'utf8'), 'mine\n');
+  assert.ok(!existsSync(join(office, 'system/running')));
+});

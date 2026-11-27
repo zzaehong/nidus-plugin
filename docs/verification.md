@@ -89,3 +89,25 @@
 - `claude plugin validate plugin`(v2.1.330): 통과(경고: author·LICENSE·icon 없음 — 마켓 제출 시에만 필요).
 - 실측(2026-11-24, Pro): Telegram 지시 "NVDA 분석"이 처음부터 끝까지 정상 동작(task → worker 4관점 순차 → 검토 → Telegram 보고). 한도 소모는 5시간 한도의 약 4%(`/usage`). 주간 한도 소모는 미측정.
 - 실측(2026-11-25): 맥미니 재부팅 → 로그인 후 watchdog(launchd)이 `nidus` 세션을 다시 띄우고 Telegram 재시작 알림이 옴. 단, 볼트는 한 번 직접 신뢰해 둬야 함(`--add-dir` 승인은 세션마다 사라져 확인 화면에서 멈춤). SwiftBar 메뉴바 아이콘은 SwiftBar의 Launch at Login을 켜야 재부팅 후 뜸.
+
+---
+
+# 추가 검증 (2026-11-27, 0.4.0: 팀 폴더 + 동시 분배)
+
+## 서브에이전트 동시 실행·훅 입력 — 실측 확인
+출처: https://code.claude.com/docs/en/sub-agents, https://code.claude.com/docs/en/hooks, 임시 플러그인(`tprobe`)을 `claude -p --plugin-dir`로 실행(v2.1.332)
+- 메인 대화에서 띄운 커스텀 서브에이전트는 기본으로 백그라운드에서 시작하고, 끝나면 다음 턴에 완료 알림이 온다. 동시 실행 기본 상한 20(`CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS`).
+- 한 메시지에서 두 에이전트를 띄우면 동시에 돌았다. 각 PreToolUse 입력에 `agent_id`와 `agent_type: "<플러그인>:<에이전트>"`(예: `tprobe:probe`)가 들어온다 → guard의 `nidus:builder` 완전 일치 판정이 동시 실행에서도 유효.
+- `SubagentStart`·`SubagentStop` 입력에 `agent_id`·`agent_type`이 있고, Stop에는 `last_assistant_message`·`agent_transcript_path`도 있다 → `hooks/running.mjs`가 `system/running/<agent_id>`로 돌고 있는 워커를 기록.
+- 백그라운드 서브에이전트도 frontmatter의 도구(Read·Write·WebSearch·WebFetch·Bash)를 받았다. 문서는 "백그라운드는 더 작은 기본 도구 세트"라고 적지만 이 구성에서는 빠진 도구가 없었다.
+- `claude -p`(기본 권한 모드)에서는 워커의 Write가 권한 확인으로 거절됐다. 실제 세션(`--permission-mode auto`)에서 확인 화면 없이 쓰는지는 **미확인**.
+
+## 구독 사용량 — 문서 확인
+출처: https://code.claude.com/docs/en/statusline
+- 상태 줄 stdin의 `rate_limits.five_hour`·`seven_day`(`used_percentage`, `resets_at` 초 단위)는 Pro·Max·Ultra에서, 첫 API 응답 뒤에만 들어온다. 상태 줄은 새 응답·`/compact`·권한 모드 변경 등에서 다시 실행된다(300ms 디바운스).
+- `office.sh`가 `--settings`로 상태 줄을 `scripts/nidus-usage.mjs`로 지정해 `system/usage.json`에 저장한다. 실제 세션에서 쓰이는지는 **미확인**.
+- 메인 대화의 응답 때만 갱신되므로, 워커만 돌고 관리자가 조용한 동안의 값은 그만큼 늦다.
+
+## 그 밖의 확인
+- `tmux display-message -p -t nidus '#{pane_current_path}'`가 office 경로를 준다 → 메뉴바(`nidus-state.sh`)가 설정 없이 `system/running/`을 찾는다.
+- **미확인**: 동시 실행 때 한도 소모(task별 `Result`의 사용량 기록으로 쌓아 측정), Red Team 1회의 비용.

@@ -36,7 +36,7 @@ check() {
   SINCE=$(num "${SINCE:-}" "$NOW") ALERTED=$(num "${ALERTED:-}" 0) HANDOFF=$(num "${HANDOFF:-}" 0) IDLE=$(num "${IDLE:-}" 0) TGDOWN=$(num "${TGDOWN:-}" 0)
   case ${DAILY:-} in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;; *) DAILY=$TODAY ;; esac # first run: no restart today
 
-  cur=$(sh "$DIR/nidus-state.sh")
+  cur=$(NIDUS_OFFICE=$OFFICE sh "$DIR/nidus-state.sh") # counts background subagents as working
   [ "$cur" = "$ST" ] || { ST=$cur SINCE=$NOW ALERTED=0; }
   dur=$((NOW - SINCE))
   if [ "$cur" = idle ]; then IDLE=$((IDLE + 1)); else IDLE=0; fi

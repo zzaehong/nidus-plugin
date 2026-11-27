@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.4.0 — 미출시
+관리자 한 명에게 시키면 팀에 나눠 동시에 처리한다.
+
+### 추가
+- **팀 폴더** `office/teams/<팀>/`: `TEAM.md`(언제 쓰나, 맡는 폴더 `library`·`repos`, 멤버와 종류, 원칙, 데이터 출처, 완료 기준 예시, 검토 체크리스트, 결과물, Red Team 정책)와 `desk.md`(이어받을 맥락·배운 점). 처음 실행할 때 예시 팀 `stock`·`dev`를 복사하고, 그 뒤로는 사용자가 고친 내용을 덮어쓰지 않는다.
+- **동시 실행**: 서로 기다릴 필요 없는 멤버를 백그라운드로 한 번에 돌리고, 기다리는 동안에도 Telegram 메시지를 받아 다른 task를 분배한다. 같은 레포에는 builder를 하나만 둔다.
+- **사용량 관리**: 상태 줄이 구독 사용량(5시간·7일)을 `system/usage.json`에 남기고, 관리자가 그 값을 보고 동시 실행 수를 정한다(기준 표는 office 스킬). task마다 사용량을 기록하고 대시보드에 보여 준다.
+- **Completion Contract**: task마다 Goal·Scope·Constraints·Acceptance Criteria·Verification·Result를 먼저 쓰고, 기준을 모두 확인해야 완료로 둔다.
+- **Red Team** (`nidus:redteam`): 종합한 결론이나 코드 변경을 중간 과정 없이 받아 전제·취약점·실패 시나리오·반례를 공격하고 Pass·Revise·Conflict로 판정한다. Conflict는 사용자에게 올린다.
+- **돌고 있는 워커 추적**: SubagentStart/Stop 훅이 `system/running/`에 기록한다. 관리자 화면이 대기처럼 보여도 watchdog과 메뉴바는 작업 중으로 본다(돌고 있는 워커를 재시작으로 죽이지 않음).
+
+### 바뀜
+- 워커(worker·builder·redteam)는 office의 `tasks/` 아래 결과 파일에만 쓴다. 대시보드·outputs·teams·jobs·system은 관리자만 쓴다.
+- `skills/team-stock`을 `teams/stock/TEAM.md`로 옮겼다. 0.3.0에서 올리면 첫 실행 때 `office/teams/`가 생긴다.
+
 ## 0.3.0 — 2026-11-27
 남도 설치해 쓸 수 있게 정리한 첫 공개 릴리즈.
 

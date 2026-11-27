@@ -109,3 +109,16 @@ test('Stop hook catches Telegram messages that never reached the inbox', () => {
   assert.equal(stop().status, OK);
   assert.equal(spawnSync('node', [inbox], { input: JSON.stringify({ cwd: office, transcript_path: join(root, 'none') }), encoding: 'utf8', env }).status, OK, 'missing transcript fails open');
 });
+
+test('subagents write only under office/tasks; the manager owns dashboard, outputs, teams, system', () => {
+  const redteam = as('nidus:redteam');
+  for (const who of [worker, builder, redteam]) {
+    assert.equal(who('Write', { file_path: join(office, 'tasks/2026-11/x/workers/a.md') }), OK);
+    for (const f of ['teams/stock/TEAM.md', 'teams/stock/desk.md', '00.dashboard.md', 'outputs/stock/NVDA.md', 'jobs.md', 'system/inbox.md'])
+      assert.equal(who('Write', { file_path: join(office, f) }), NO, f);
+  }
+  for (const f of ['teams/stock/TEAM.md', '00.dashboard.md', 'system/inbox.md'])
+    assert.equal(manager('Write', { file_path: join(office, f) }), OK, f);
+  assert.equal(redteam('WebFetch', { url: 'https://example.com' }), OK, 'red team keeps the web');
+  assert.equal(redteam('Write', { file_path: join(repo, 'a.js') }), NO, 'red team cannot write code');
+});
