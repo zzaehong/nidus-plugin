@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync, chmodSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, chmodSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -16,12 +16,13 @@ const iconFor = (hasSession, pane, tg = true) => {
   chmodSync(join(dir, 'ps'), 0o755);
   return spawnSync('sh', [script], { encoding: 'utf8', env: { ...process.env, PATH: `${dir}:${process.env.PATH}`, NIDUS_TG_DIR: dir } }).stdout.split('\n')[0];
 };
+const png = (s) => ` | image=${readFileSync(new URL(`../assets/menubar/${s}.png`, import.meta.url)).toString('base64')}`;
 
 test('menu bar icon reflects session state', () => {
-  assert.equal(iconFor(false, ''), '🔴');
-  assert.equal(iconFor(true, ' Yes, add it\n Enter to confirm · Esc to cancel'), '🟡');
-  assert.equal(iconFor(true, '✻ Thinking… (12s · esc to interrupt)'), '🔵');
-  assert.equal(iconFor(true, '> \n  ? for shortcuts'), '🟢');
-  assert.equal(iconFor(true, '> \n  ? for shortcuts', false), '🟠');
-  assert.equal(iconFor(false, '', false), '🔴', 'session off wins');
+  assert.equal(iconFor(false, ''), png('off'));
+  assert.equal(iconFor(true, ' Yes, add it\n Enter to confirm · Esc to cancel'), png('waiting'));
+  assert.equal(iconFor(true, '✻ Thinking… (12s · esc to interrupt)'), png('working'));
+  assert.equal(iconFor(true, '> \n  ? for shortcuts'), png('idle'));
+  assert.equal(iconFor(true, '> \n  ? for shortcuts', false), png('tgdown'));
+  assert.equal(iconFor(false, '', false), png('off'), 'session off wins');
 });

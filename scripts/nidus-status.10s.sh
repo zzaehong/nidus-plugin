@@ -6,19 +6,21 @@ LOG=$HOME/Library/Logs/nidus-watchdog.log
 HERE=$(dirname "$(realpath "$0")") # $0 is the symlink in the SwiftBar folder
 ATTACH=$HERE/nidus-attach.command
 
-case $(sh "$HERE/nidus-state.sh") in
-off) icon=🔴 state=꺼짐 ;;
-waiting) icon=🟡 state="승인 대기 (attach해서 확인)" ;;
-working) icon=🔵 state="작업 중" ;;
-*) icon=🟢 state=대기 ;;
+icon=$(sh "$HERE/nidus-state.sh")
+case $icon in
+off) state=꺼짐 ;;
+waiting) state="승인 대기 (attach해서 확인)" ;;
+working) state="작업 중" ;;
+*) icon=idle state=대기 ;;
 esac
 # Telegram channel alive = plugin's server.ts still holds bot.pid (same check as watchdog.sh tg_up).
 pid=$(cat "${NIDUS_TG_DIR:-$HOME/.claude/channels/telegram}/bot.pid" 2>/dev/null)
-if [ "$icon" != 🔴 ] && ! { [ -n "$pid" ] && ps -p "$pid" -o args= 2>/dev/null | grep -q server.ts; }; then
-  icon=🟠 state="$state · Telegram 끊김 (watchdog이 대기 상태일 때 재시작)"
+if [ "$icon" != off ] && ! { [ -n "$pid" ] && ps -p "$pid" -o args= 2>/dev/null | grep -q server.ts; }; then
+  icon=tgdown state="$state · Telegram 끊김 (watchdog이 대기 상태일 때 재시작)"
 fi
 
-echo "$icon"
+# Nest with a status-colored egg; drawn in assets/menubar.svg, rendered by assets/render.swift.
+echo " | image=$(base64 <"$HERE/../assets/menubar/$icon.png" | tr -d '\n')"
 echo "---"
 echo "Nidus: $state"
 launchctl print "gui/$(id -u)/com.nidus.watchdog" >/dev/null 2>&1 || echo "watchdog 꺼져 있음 (scripts/watchdog.sh install) | color=red"

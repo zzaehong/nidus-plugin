@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#2F3748"/><stop offset="1" stop-color="#161A23"/>
+    </linearGradient>
+    <linearGradient id="egg" x1="0.3" y1="0" x2="0.7" y2="1">
+      <stop offset="0" stop-color="#FFFAF2"/><stop offset="1" stop-color="#E6D3BA"/>
+    </linearGradient>
+    <linearGradient id="nest" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#C98B4E"/><stop offset="1" stop-color="#8A5A2E"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#5BC8FF" stop-opacity="0.85"/><stop offset="1" stop-color="#5BC8FF" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <ellipse cx="256" cy="236" rx="80" ry="102" fill="url(#egg)"/>
+  <circle cx="256" cy="216" r="58" fill="url(#glow)"/>
+  <circle cx="256" cy="216" r="17" fill="#5BC8FF"/>
+  <path d="M78 282 Q256 328 434 282 C426 404 344 436 256 436 C168 436 86 404 78 282 Z" fill="url(#nest)"/>
+  <g fill="none" stroke-linecap="round">
+    <!-- woven twigs: crossing diagonals -->
+    <path d="M98 300 Q168 372 238 428" stroke="#A86F3A" stroke-width="9"/>
+    <path d="M414 300 Q344 372 274 428" stroke="#A86F3A" stroke-width="9"/>
+    <path d="M150 306 Q222 370 314 424" stroke="#D9A066" stroke-width="8"/>
+    <path d="M362 306 Q290 370 198 424" stroke="#D9A066" stroke-width="8"/>
+    <path d="M214 312 Q280 364 372 404" stroke="#B87C43" stroke-width="7"/>
+    <path d="M298 312 Q232 364 140 404" stroke="#B87C43" stroke-width="7"/>
+    <!-- bands following the bowl -->
+    <path d="M96 336 Q256 388 416 336" stroke="#E9B97F" stroke-width="7" opacity="0.8"/>
+    <path d="M128 378 Q256 420 384 378" stroke="#C98B4E" stroke-width="7" opacity="0.9"/>
+    <!-- rim: thick, uneven, twig ends sticking out -->
+    <path d="M70 280 Q256 336 442 280" stroke="#F0C48C" stroke-width="18"/>
+    <path d="M90 296 Q256 342 424 292" stroke="#C98B4E" stroke-width="8"/>
+    <path d="M52 262 Q90 284 128 290" stroke="#E9B97F" stroke-width="9"/>
+    <path d="M460 266 Q420 286 384 292" stroke="#E9B97F" stroke-width="9"/>
+    <path d="M58 296 Q96 296 124 306" stroke="#C98B4E" stroke-width="7"/>
+    <path d="M452 302 Q414 300 388 308" stroke="#C98B4E" stroke-width="7"/>
+  </g>
+</svg>
