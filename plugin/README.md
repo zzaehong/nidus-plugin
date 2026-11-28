@@ -73,7 +73,7 @@ tz = Asia/Seoul
 - `/loop`는 7일 후 만료 → watchdog의 일일 재시작과 SessionStart 안내로 `jobs.md`에서 재등록.
 - lead는 어느 팀의 `desk.md`든 쓸 수 있다(훅이 lead의 팀을 모른다). 자기 팀 desk만 쓰는 것은 프롬프트 규칙이다.
 - 팀의 `repos`·`library`는 권한 경계가 아니다. 관리자가 브리프로 지키는 규칙이고, 훅은 `writable` 전체를 builder에게 허용한다. 레포를 정말 막으려면 `readonly`에 적는다.
-- 워커가 office의 `tasks/` 밖에 쓰지 못하게 하는 것은 Write·Edit 도구만 막는다. Bash 리다이렉트(`echo > teams/...`)는 통과한다.
+- 서브에이전트(builder 제외)는 Bash 쓰기 명령(`>`, `cp`, `mv`, `rm`, `tee` 등)을 아예 못 쓰고, builder는 Bash로 office(`tasks/` 제외)를 건드리지 못한다. 키워드 검사라서 스크립트가 스스로 파일을 쓰는 경우(`python -c`, `.py` 실행)는 못 막는다. 확실히 막으려면 샌드박스가 필요하다.
 - 동시 실행 수는 관리자의 판단이고 코드로 막지 않는다(Claude Code 자체 상한은 20).
-- 워커가 SubagentStop 없이 죽으면 `system/running/`의 파일이 최대 3시간 남는다. 그동안 watchdog은 작업 중으로 보고 대기 상태 재시작을 미루며, "60분째 작업 중" 알림이 잘못 갈 수 있다. 세션을 다시 시작하면 지워진다.
+- 워커가 SubagentStop 없이 죽으면 `system/running/`의 파일이 최대 12시간 남는다. 그동안 watchdog은 작업 중으로 보고 대기 상태 재시작을 미루며, "60분째 작업 중" 알림이 잘못 갈 수 있다. 세션을 다시 시작하면 지워진다.
 - 볼트 내용이 웹 요청(검색어·URL)으로 새는 것은 코드로 막지 않고 프롬프트 규칙(worker 지침)과 관리자 검토(체크리스트 6번)로만 제한한다.

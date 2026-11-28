@@ -22,7 +22,7 @@ teams/<팀>/
   desk.md                그룹 관리자 데스크: 지금 맡은 일 체크리스트, 이어받을 맥락, 배운 점. 그 팀 lead가 쓴다.
 system/                  inbox.md, chat.md(chat_id), handoff.md, usage.json(사용량, 상태 줄이 씀), running/(돌고 있는 lead·워커, 훅이 씀), events.md·watchdog.state·restarts(watchdog 전용)
 ```
-- 쓰는 곳이 나뉜다(훅으로도 차단). 워커는 `tasks/` 안 자기 결과 파일만. lead는 `tasks/`·`projects/`·`outputs/`·`teams/<팀>/desk.md`. `00.dashboard.md`·`board.md`·`desk.md`·`TEAM.md`·`jobs.md`·`system/`은 메인만.
+- 쓰는 곳이 나뉜다(훅으로도 차단). 워커는 `tasks/` 안 자기 결과 파일만. lead는 `tasks/`·`projects/`·`outputs/`·`wiki/`·`teams/<팀>/desk.md`. 서브에이전트는 Bash로 파일을 쓰지 않고 Write/Edit만 쓴다(builder의 레포 작업은 예외). `00.dashboard.md`·`board.md`·`desk.md`·`TEAM.md`·`jobs.md`·`system/`은 메인만.
 - 팀 정의를 바꾸고 싶으면 Telegram으로 제안하고, 사용자가 허락하면 고친다.
 - 문서 사이 링크는 상대 경로 마크다운 링크(`[NVDA](../../outputs/stock/NVDA.md)`)로 쓴다.
 - `system/`에서 메인이 쓰는 것은 `inbox.md`, `chat.md`(처음 메시지를 받을 때 chat_id 기록), `handoff.md`뿐이다.
@@ -190,10 +190,10 @@ lead와 워커가 동시에 돌수록 구독 한도가 빨리 준다. 메인이 
 5. watchdog도 채널 끊김을 스스로 감지해 재시작한다(server.ts 프로세스가 없을 때). 3번은 그 감지에 안 걸리는 경우(프로세스는 있는데 도구가 실패)까지 덮는다.
 
 ## 반복 작업
-- 등록: `jobs.md`에 행을 추가하고(결과물 칸에 outputs 경로) `/loop <간격> <지시>`로 등록한다. 사용자에게 등록 사실을 알린다.
+- 등록: `jobs.md`에 행을 추가하고(결과물 칸에 outputs 경로) 정해진 시각이면 CronCreate, 간격이면 `/loop <간격> <지시>`로 등록하고 쓴 방법(cron 식 포함)을 그 행에 적는다. 사용자에게 등록 사실을 알린다.
 - 해제: 행을 지우고 해당 loop를 지운다.
-- 세션 시작 시: `jobs.md`의 모든 행을 다시 `/loop`로 등록한다(만료·재시작 대응).
-- 실행마다 task를 만들고(`job:` 기록, `priority: 예약`) 그 팀 lead에게 맡긴다(가볍고 짧으면 빠른 일로 직접). 같은 outputs 문서를 갱신한다. Telegram은 outputs가 실제로 바뀌었을 때만 보낸다.
+- 세션 시작 시: `jobs.md`의 모든 행을 그 행에 적힌 방법으로 다시 등록한다(만료·재시작 대응).
+- 실행마다 task를 만들고(`job:` 기록, `priority: 예약`) 그 팀 lead에게 맡긴다(가볍고 짧으면 빠른 일로 직접). 같은 outputs 문서를 갱신한다. Telegram 보고는 `jobs.md`에 적힌 규칙을 따르고, 없으면 outputs가 실제로 바뀌었을 때만 보낸다.
 
 ## 하지 않는 것
 주문·매매·결제, 외부 계정 접근, main/master push, 볼트(office 폴더 제외)·읽기 전용 데이터 쓰기, 사용자 외 사람에게 메시지.

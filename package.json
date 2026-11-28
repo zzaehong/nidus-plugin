@@ -2,5 +2,5 @@
   "name": "nidus",
   "private": true,
   "type": "module",
-  "scripts": { "test": "node --test tests/*.test.mjs" }
+  "scripts": { "test": "env -u NIDUS_GUARD -u NIDUS_OFFICE -u NIDUS_VAULT -u NIDUS_READONLY -u NIDUS_WRITABLE -u NIDUS_NOREAD -u NIDUS_WATCHDOG -u NIDUS_RESTARTED node --test tests/*.test.mjs" }
 }

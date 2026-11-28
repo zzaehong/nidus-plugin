@@ -152,34 +152,6 @@ daily_due() {
   fi
 }
 
-start() {
-  [ "$DAILY" = "$TODAY" ] && return 0
-  [ "$HOUR" -ge "$DAILY_HOUR" ] || return 0
-  if [ "$HANDOFF" = 0 ]; then
-    if [ "$HOUR" -ge $DAILY_END ]; then
-      DAILY=$TODAY
-      event "일일 재시작 건너뜀 (${DAILY_HOUR}~${DAILY_END}시 내내 바쁨)"
-      tg "오늘 일일 재시작을 못 했다(계속 작업 중이었음). 내일 다시 시도한다." || true
-      return 0
-    fi
-    [ "$IDLE" -ge 2 ] || return 0 # idle for two ticks in a row
-    tmux send-keys -t nidus -l "$HANDOFF_PROMPT"
-    sleep "${NIDUS_KEY_DELAY:-1}"
-    tmux send-keys -t nidus Enter
-    HANDOFF=$NOW
-    event "일일 재시작: handoff 요청"
-    return 0
-  fi
-  h=$(stat -f %m "$SYS/handoff.md" 2>/dev/null || echo 0)
-  if [ "$h" -ge "$HANDOFF" ] || [ $((NOW - HANDOFF)) -ge $HANDOFF_TIMEOUT ]; then
-    [ "$h" -ge "$HANDOFF" ] || event "handoff.md가 15분 안에 안 써짐 → 그대로 재시작"
-    tmux kill-session -t nidus || true
-    DAILY=$TODAY HANDOFF=0 ST=none SINCE=$NOW ALERTED=0 IDLE=0
-    event "일일 재시작"
-    start daily
-  fi
-}
-
 start() { NIDUS_RESTARTED=$1 "${OFFICE_SH:-$DIR/office.sh}" "$VAULT" "$OFFICE" || event "office.sh 실패 ($?)"; }
 
 event() {

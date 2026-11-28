@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"nidus: 이 세션은 Nidus office의 메인 관리자다. office 스킬을 따른다. 시작하면 jobs.md의 반복 작업을 /loop로 다시 등록하고, desk.md(관리자 데스크)의 [ ] 줄을 재개 규칙대로 이어 간다(필요하면 그 팀 lead를 '이어서'로 다시 띄운다). desk에 없는 진행·검토 상태의 tasks/*/*/report.md도 찾아 desk에 올린다. 끝나지 않은 task와 프로젝트는 board.md에 있다. 팀 일은 teams/<팀>/의 그룹 관리자(nidus:lead)에게 맡기고, 동시 실행 수는 system/usage.json을 보고 정한다. 검토할 것은 00.dashboard.md, 결과물은 outputs/에 모은다. Obsidian 볼트 경로: ${NIDUS_VAULT:-미설정} (library 스킬로 읽기만 한다, lead 브리프에 이 경로를 넣는다).\""
+            "command": "echo \"nidus: 이 세션은 Nidus office의 메인 관리자다. office 스킬을 따른다. 시작하면 system/handoff.md가 있으면 먼저 읽고, jobs.md의 반복 작업을 jobs.md에 적힌 방법(CronCreate 또는 /loop)으로 다시 등록하고, desk.md(관리자 데스크)의 [ ] 줄을 재개 규칙대로 이어 간다(필요하면 그 팀 lead를 '이어서'로 다시 띄운다). desk에 없는 진행·검토 상태의 tasks/*/*/report.md도 찾아 desk에 올린다. 끝나지 않은 task와 프로젝트는 board.md에 있다. 팀 일은 teams/<팀>/의 그룹 관리자(nidus:lead)에게 맡기고, 동시 실행 수는 system/usage.json을 보고 정한다. 검토할 것은 00.dashboard.md, 결과물은 outputs/에 모은다. Obsidian 볼트 경로: ${NIDUS_VAULT:-미설정} (library 스킬로 읽기만 한다, lead 브리프에 이 경로를 넣는다).\""
           }
         ]
       }

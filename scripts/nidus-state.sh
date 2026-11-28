@@ -7,9 +7,9 @@ case $(tmux capture-pane -p -t nidus 2>/dev/null) in
 *"esc to interrupt"*) echo working ;;
 *)
   # Background subagents (group managers, workers) leave the pane idle; plugin/hooks/running.mjs keeps a file per running one.
-  # Files older than 3h count as leftovers of an agent that never reported SubagentStop.
+  # Files older than 12h count as leftovers of an agent that never reported SubagentStop (a longer lead shows as idle).
   office=${NIDUS_OFFICE:-$(tmux display-message -p -t nidus '#{pane_current_path}' 2>/dev/null)} # claude's cwd is the office
-  if [ -n "$office" ] && [ -n "$(find "$office/system/running" -type f -mmin -180 2>/dev/null | head -n 1)" ]; then
+  if [ -n "$office" ] && [ -n "$(find "$office/system/running" -type f -mmin -720 2>/dev/null | head -n 1)" ]; then
     echo background
   else echo idle; fi ;;
 esac

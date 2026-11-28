@@ -21,6 +21,10 @@
 - 일일 재시작은 lead·워커가 돌고 있을 때만 미룬다. 열린 task·프로젝트는 desk 체크리스트로 재시작 뒤에도 이어진다.
 - watchdog·메뉴바: 화면은 대기인데 lead·워커만 돌면 `background` 상태. 60분 "멈춤?" 알림을 보내지 않고, 재시작 요청도 강제하지 않고 기다린다.
 - 검토 체크리스트·Red Team·코딩 절차는 office 스킬에서 `agents/lead.md`로 옮겼다. 예시 팀의 `desk.md` 형식이 바뀌었다(이미 복사된 office의 desk는 lead가 처음 쓸 때 새 형식으로 바꾼다).
+- guard: 서브에이전트(builder 제외)는 Bash로 파일을 쓰지 못한다(Bash 리다이렉트로 `jobs.md`·`teams/`를 바꾸던 구멍). builder는 Bash로 office에 쓰지 못한다. guard가 오류로 죽으면 통과하지 않고 막는다.
+- guard 오탐 수정: `process.env`, `=>`, 읽기 전용 경로에서 복사하는 `cp`. Claude Code 스크래치패드 쓰기 허용. lead는 `wiki/`에 쓸 수 있다.
+- 반복 작업 등록을 `jobs.md`에 적힌 방법(CronCreate 또는 `/loop`)대로 한다. 모든 재시작에서 `system/handoff.md`를 읽는다. `system/running/`의 남은 파일은 12시간까지 작업 중으로 본다(3시간 넘는 lead가 대기로 보이던 문제).
+- `npm test`는 돌고 있는 세션의 `NIDUS_*` 환경 변수를 물려받지 않는다. watchdog의 쓰이지 않던 `start()` 함수를 지웠다.
 - `skills/team-stock`을 `teams/stock/TEAM.md`로 옮겼다. 0.3.0에서 올리면 첫 실행 때 `office/teams/`가 생긴다.
 
 ## 0.3.0 — 2026-11-27

@@ -132,3 +132,18 @@ test('subagents write only under office/tasks; the manager owns dashboard, outpu
   assert.equal(redteam('WebFetch', { url: 'https://example.com' }), OK, 'red team keeps the web');
   assert.equal(redteam('Write', { file_path: join(repo, 'a.js') }), NO, 'red team cannot write code');
 });
+
+test('subagents cannot write the office through Bash; the manager can', () => {
+  const lead = as('nidus:lead');
+  for (const who of [worker, lead, as('nidus:redteam')]) {
+    assert.equal(who('Bash', { command: `echo x >> ${office}/jobs.md` }), NO);
+    assert.equal(who('Bash', { command: `cp a.md ${office}/teams/stock/TEAM.md` }), NO);
+    assert.equal(who('Bash', { command: `ls ${office}/tasks 2>/dev/null | head` }), OK, 'reads still work');
+  }
+  assert.equal(builder('Bash', { command: `echo x > ${office}/jobs.md` }), NO);
+  assert.equal(builder('Bash', { command: `cd ${repo} && npm test > ${office}/tasks/t/out.txt` }), OK);
+  assert.equal(manager('Bash', { command: `echo x >> ${office}/jobs.md` }), OK);
+  assert.equal(lead('Write', { file_path: join(office, 'wiki/index.md') }), OK);
+  assert.equal(worker('Write', { file_path: join(office, 'wiki/index.md') }), NO);
+  assert.equal(worker('Write', { file_path: join(realpathSync('/tmp'), `claude-${process.getuid()}/s/scratch.md`) }), OK, 'scratchpad');
+});

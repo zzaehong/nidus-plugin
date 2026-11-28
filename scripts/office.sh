@@ -27,12 +27,12 @@ touch "$OFFICE/jobs.md" "$OFFICE/system/chat.md"
 # refreshInterval: keep usage.json fresh while the main conversation is quiet and only subagents spend.
 # shortcut: the repo path is unquoted inside the JSON, so a repo path with spaces breaks the status line only.
 SETTINGS="{\"statusLine\":{\"type\":\"command\",\"command\":\"node $REPO/scripts/nidus-usage.mjs\",\"refreshInterval\":60}}"
-# SessionStart only adds context, so after a watchdog restart nothing re-registers /loop until a prompt arrives.
+# SessionStart only adds context, so after a watchdog restart nothing re-registers the jobs until a prompt arrives.
 case ${NIDUS_RESTARTED:-} in
-1) PROMPT=" 'watchdog가 세션을 다시 시작했다. jobs.md의 반복 작업을 /loop로 다시 등록하고, 진행 중인 tasks를 이어 가고, 재시작 사실을 Telegram으로 알려라.'" ;;
-daily) PROMPT=" 'watchdog의 일일 재시작이다. system/handoff.md를 읽고 이어 갈 일을 이어 가고, jobs.md의 반복 작업을 /loop로 다시 등록한 뒤, 일일 재시작을 마쳤다는 것과 이어 간 일을 Telegram으로 짧게 알려라. Telegram이 안 되면 office 스킬의 Telegram이 안 될 때 절차를 따른다.'" ;;
-telegram) PROMPT=" 'Telegram 연결이 끊겨 watchdog이 세션을 다시 시작했다. system/handoff.md를 읽고 이어 갈 일을 이어 가고, jobs.md의 반복 작업을 /loop로 다시 등록하고, 재연결 사실을 Telegram으로 알려라. 끊긴 동안 온 메시지는 받지 못했을 수 있다고 함께 알려라.'" ;;
-request) PROMPT=" '직전 세션의 요청으로 watchdog이 세션을 다시 시작했다. system/handoff.md를 읽고 이어 갈 일을 이어 가고, jobs.md의 반복 작업을 /loop로 다시 등록하라. Telegram이 되면 재시작 사실과 사유를 알리고, 안 되면 office 스킬의 Telegram이 안 될 때 절차를 따른다.'" ;;
+1) PROMPT=" 'watchdog가 세션을 다시 시작했다. system/handoff.md가 있으면 읽고, jobs.md의 반복 작업을 jobs.md에 적힌 방법(CronCreate 또는 /loop)으로 다시 등록하고, 진행 중인 tasks를 이어 가고, 재시작 사실을 Telegram으로 알려라.'" ;;
+daily) PROMPT=" 'watchdog의 일일 재시작이다. system/handoff.md를 읽고 이어 갈 일을 이어 가고, jobs.md의 반복 작업을 jobs.md에 적힌 방법(CronCreate 또는 /loop)으로 다시 등록한 뒤, 일일 재시작을 마쳤다는 것과 이어 간 일을 Telegram으로 짧게 알려라. Telegram이 안 되면 office 스킬의 Telegram이 안 될 때 절차를 따른다.'" ;;
+telegram) PROMPT=" 'Telegram 연결이 끊겨 watchdog이 세션을 다시 시작했다. system/handoff.md를 읽고 이어 갈 일을 이어 가고, jobs.md의 반복 작업을 jobs.md에 적힌 방법(CronCreate 또는 /loop)으로 다시 등록하고, 재연결 사실을 Telegram으로 알려라. 끊긴 동안 온 메시지는 받지 못했을 수 있다고 함께 알려라.'" ;;
+request) PROMPT=" '직전 세션의 요청으로 watchdog이 세션을 다시 시작했다. system/handoff.md를 읽고 이어 갈 일을 이어 가고, jobs.md의 반복 작업을 jobs.md에 적힌 방법(CronCreate 또는 /loop)으로 다시 등록하라. Telegram이 되면 재시작 사실과 사유를 알리고, 안 되면 office 스킬의 Telegram이 안 될 때 절차를 따른다.'" ;;
 *) PROMPT="" ;;
 esac
 tmux new-session -d -s nidus -c "$OFFICE" \

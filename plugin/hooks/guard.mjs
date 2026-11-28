@@ -5,7 +5,7 @@ import { resolve, dirname, sep, join } from 'node:path';
 import { execFileSync } from 'node:child_process';
 
 const PROTECTED = /^\+?(main|master)$/;
-const SECRETS = /(\.ssh|\.aws|\.gnupg|Library\/Keychains|\.env\b|id_rsa|id_ed25519)/;
+const SECRETS = /(\.ssh|\.aws|\.gnupg|Library\/Keychains|(?<![\w.])\.env\b|id_rsa|id_ed25519)/;
 // Files Claude Code or git load and run later: a planted one could switch hooks off or fake an agent.
 const CONFIG = /(^|\/)(\.claude(\/|$)|CLAUDE\.md$|\.mcp\.json$|\.git\/(hooks|config)(\/|$))/;
 const CONFIG_CMD = /(\.claude\/|CLAUDE\.md|\.mcp\.json|\.git\/hooks|\.git\/config)/;
@@ -17,7 +17,7 @@ function branchOf(cwd) {
 }
 
 // shortcut: tokenizes by whitespace and splits on ; && || |, so quoted/eval'd/obfuscated pushes slip through; upgrade to a real shell parser if workers get adversarial.
-export function checkBash(cmd, cwd, builder = false, office = cwd) {
+export function checkBash(cmd, cwd, builder = false, office = cwd, agent = builder ? BUILDER : '') {
   let dir = cwd;
   for (const seg of cmd.split(/&&|\|\||;|\||\n/)) {
     const t = seg.trim().split(/\s+/);
@@ -43,10 +43,14 @@ export function checkBash(cmd, cwd, builder = false, office = cwd) {
   // shortcut: keyword lists, same limits as below; scripts or other languages can still reach the network or write.
   if (builder && /(^|[\s;&|(])(curl|wget|nc|ncat|telnet|lynx|w3m|aria2c|http|https)\s/.test(cmd))
     return 'builder는 웹에 접근할 수 없다 (리서치는 worker가 한다)';
-  // shortcut: the tasks/-only rule for subagents covers Write/Edit; a Bash redirect into office/teams still passes. Upgrade with a sandbox.
   const writes = WRITES.test(cmd.replace(/\d*>&\d|&?\d*>+\s*\/dev\/null/g, '')); // 2>&1, >/dev/null are not writes
   if (!writes) return null;
   if (CONFIG_CMD.test(cmd)) return '.claude/·CLAUDE.md·.mcp.json·.git/hooks 쓰기 금지';
+  // Subagents other than the builder write files only through Write/Edit, where checkWrite enforces the office rules.
+  // shortcut: keyword match, so a script that writes by itself (python -c, a .py file) still passes; upgrade with a sandbox.
+  if (agent && !builder) return 'Bash로 파일을 쓰지 마라. 결과 파일은 Write/Edit로 쓴다 (서브에이전트 규칙)';
+  if (builder && office && mentions(cmd.replaceAll(join(office, 'tasks'), ''), office)) return 'builder는 Bash로 office에 쓸 수 없다 (tasks/ 결과는 Write로)';
+  cmd = cmd.replace(CP_SOURCES, 'cp$2'); // a cp source is only read; the destination is the last argument
   // The office folder may live inside the read-only vault; paths under it don't count as vault paths.
   const outside = office ? cmd.replace(new RegExp(office.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + `(?=[/\\s'"]|$)`, 'g'), '') : cmd;
   // shortcut: keyword match only (paths named in the command, or the dir it cd's into); misses writes via scripts/aliases.
@@ -58,7 +62,8 @@ export function checkBash(cmd, cwd, builder = false, office = cwd) {
 
 const HOME = process.env.HOME ?? '';
 const mentions = (cmd, p) => cmd.includes(p) || (HOME && inside(p, HOME) && cmd.includes('~' + p.slice(HOME.length)));
-const WRITES =/(>|\brm\b|\bmv\b|\bcp\b|\btee\b|\bsed\s+-i|\btouch\b|\bmkdir\b|(^|[\s;&|(])sqlite3\s+(?!.*(-readonly|mode=ro)))/;
+const CP_SOURCES = /\bcp((?:\s+[^\s;&|]+)+?)(\s+[^\s;&|]+)(?=\s*(?:$|[;&|\n]))/g;
+const WRITES =/((?<![=-])>|\brm\b|\bmv\b|\bcp\b|\btee\b|\bsed\s+-i|\btouch\b|\bmkdir\b|(^|[\s;&|(])sqlite3\s+(?!.*(-readonly|mode=ro)))/;
 const writablePaths = () => (process.env.NIDUS_WRITABLE ?? '').split(':').filter(Boolean);
 const readonlyPaths = () => (process.env.NIDUS_READONLY ?? '').split(':').filter(Boolean);
 const noreadPaths = () => (process.env.NIDUS_NOREAD ?? '').split(':').filter(Boolean);
@@ -87,6 +92,7 @@ export function checkWrite(path, cwd, builder = false, office = cwd, agent = bui
   const n = noreadHit(real, false);
   if (n) return `읽기 금지 경로: ${n}`;
   if (CONFIG.test(real)) return `.claude/·CLAUDE.md·.mcp.json·.git/hooks 쓰기 금지: ${real}`;
+  if (inside(real, SCRATCH)) return null; // Claude Code's own per-session scratchpad
   if (inside(real, root)) // office folder, even when it sits inside the read-only vault
     // Subagents (several may run at once) only write their own result files; the manager is the single writer of
     // dashboard, outputs, teams, jobs and system/, so a web-tainted worker cannot rewrite a team's principles.
@@ -101,15 +107,16 @@ export function checkWrite(path, cwd, builder = false, office = cwd, agent = bui
 // Inside the office: the main manager writes anything; a group manager (nidus:lead) writes its work (tasks, projects,
 // outputs) and team desks but not team definitions, board, dashboard, jobs or system/; other subagents only tasks/.
 const LEAD = 'nidus:lead';
+const SCRATCH = join(realpathSync('/tmp'), `claude-${process.getuid?.() ?? ''}`);
 function officeWrite(real, root, agent) {
   if (!agent) return null;
   const under = (d) => inside(real, join(root, d));
   if (under('tasks')) return null;
   if (agent === LEAD) {
-    if (under('projects') || under('outputs')) return null;
+    if (under('projects') || under('outputs') || under('wiki')) return null;
     // shortcut: any team's desk.md, since the hook can't tell which team a lead works for.
     if (/^teams\/[^/]+\/desk\.md$/.test(real.slice(root.length + 1))) return null;
-    return `그룹 관리자는 office의 tasks/·projects/·outputs/·teams/<팀>/desk.md에만 쓴다: ${real}`;
+    return `그룹 관리자는 office의 tasks/·projects/·outputs/·wiki/·teams/<팀>/desk.md에만 쓴다: ${real}`;
   }
   return `워커는 office의 tasks/ 아래 결과 파일에만 쓴다: ${real}`;
 }
@@ -121,7 +128,7 @@ export function decide(input) {
   // The office root is fixed by office.sh; input.cwd follows the shell, which may have cd'd into ~/Developer.
   const office = process.env.NIDUS_OFFICE || input.cwd;
   if (builder && ['WebFetch', 'WebSearch'].includes(input.tool_name)) return 'builder는 웹에 접근할 수 없다';
-  if (input.tool_name === 'Bash') return checkBash(ti.command ?? '', input.cwd, builder, office);
+  if (input.tool_name === 'Bash') return checkBash(ti.command ?? '', input.cwd, builder, office, input.agent_type ?? '');
   if (['Write', 'Edit', 'NotebookEdit'].includes(input.tool_name))
     return checkWrite(ti.file_path ?? ti.notebook_path ?? '', input.cwd, builder, office, input.agent_type ?? '');
   const cwd = input.cwd || office;
@@ -131,8 +138,13 @@ export function decide(input) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  let raw = '';
-  for await (const c of process.stdin) raw += c;
-  const reason = decide(JSON.parse(raw));
+  let reason;
+  try {
+    let raw = '';
+    for await (const c of process.stdin) raw += c;
+    reason = decide(JSON.parse(raw));
+  } catch (e) {
+    reason = `guard 오류로 차단: ${e?.message ?? e}`; // fail closed: an uncaught error exits 1, which Claude Code lets through
+  }
   if (reason) { console.error(`nidus guard: ${reason}`); process.exit(2); }
 }

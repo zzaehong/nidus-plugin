@@ -87,3 +87,16 @@ test('read-only beats writable even for builder (writable = vault does nothing)'
   blocked(run('Write', { file_path: join(vault, 'note.md') }, { agent_type: 'nidus:builder' }, e));
   blocked(run('Bash', { command: `echo x > ${vault}/note.md` }, { agent_type: 'nidus:builder' }, e));
 });
+
+test('a guard error blocks instead of letting the call through', () => {
+  const r = spawnSync('node', [guard], { input: '{not json', encoding: 'utf8', env });
+  assert.equal(r.status, 2);
+});
+test('no false positives on process.env, arrows, or a cp from a read-only source', () => {
+  allowed(run('Bash', { command: `node -e "console.log(process.env.HOME)"` }));
+  allowed(run('Bash', { command: `node -e "[1].map(x => x)"` }));
+  allowed(run('Bash', { command: `cp ${vault}/note.md ${cwd}/copy.md` }));
+  blocked(run('Bash', { command: `cp ${cwd}/a.md ${vault}/note.md` }));
+  blocked(run('Bash', { command: 'cat .env' }));
+  blocked(run('Bash', { command: 'cat ~/app/.env.local' }));
+});
