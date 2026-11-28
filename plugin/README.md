@@ -3,14 +3,14 @@
 맥미니에 상시로 켜 두는 메인 관리자 세션. Telegram으로 지시·알림을 주고받고, 팀마다 그룹 관리자(lead)에게 task나 프로젝트 phase를 맡겨 사용량에 맞춰 동시에 돌리고, 그룹 관리자가 직접 검토하고 Red Team이 심사한다. Obsidian 볼트는 읽기 전용 library.
 
 ## 구성
-- `skills/office` 메인 관리자 절차(inbox 두 단계 → Task Board → 그룹 관리자에게 맡기기 또는 빠른 일 직접 처리, 프로젝트 계획·phase 판정, `desk.md` 체크리스트, 사용량에 따른 동시 실행 수, Telegram 보고, 반복 작업 `jobs.md` + `/loop`)
+- `skills/office` 메인 관리자 절차(inbox 두 단계 → Task Board → 그룹 관리자에게 맡기기 또는 빠른 일 직접 처리, 프로젝트 계획·phase 판정, `desk.md` 체크리스트, 사용량에 따른 동시 실행 수, Telegram 보고, 반복 작업 `jobs.md` + CronCreate·`/loop`)
 - `agents/lead` 그룹 관리자(Sonnet). 한 팀의 task 묶음이나 phase 하나를 맡아 Completion Contract → worker·builder 분배(중첩 서브에이전트) → 직접 검토 → Red Team → 완료 판단 → 보고. `teams/<팀>/desk.md` 체크리스트로 이어 간다. 한 팀에 한 번에 하나.
 - `teams/` 예시 팀(`stock` 주식 4관점, `dev` 코딩). 처음 실행할 때 office의 `teams/`로 복사되고, 그 뒤로는 office 쪽을 고친다. 새 팀은 폴더를 복사해 만든다.
 - `agents/worker` 리서치 워커(Sonnet). 웹 O, `~/Developer` 쓰기 X. Telegram 도구 없음.
 - `agents/redteam` Red Team(Sonnet). 종합한 결론만 받아 공격하고 Pass·Revise·Conflict로 판정. 웹 O, 쓰기는 결과 파일만.
 - `agents/builder` 코딩 워커(Sonnet). `~/Developer` 쓰기 O, 웹 X(도구 없음 + curl·wget 차단). worker가 office에 남긴 리서치만 읽는다. 웹에서 들어온 지시가 쓰기 권한으로 바로 이어지지 않게 둘을 나눴다.
 - `bin/af-query` (선택) Asset_Frame 형식 SQLite 시세 DB 읽기 전용 조회. 경로는 `AF_DB`(기본 `~/Developer/Asset_Frame/var/asset_frame.sqlite3`). 없으면 stock 팀은 웹 출처를 쓴다.
-- `hooks/guard.mjs` `NIDUS_GUARD=1`일 때 [권한 설정](#권한-설정)을 지킨다. 쓰기는 office 폴더(누구나)와 `writable`(builder만)에만, `readonly`·고정 보호 경로는 누구도 못 씀, `noread`는 누구도 못 읽음. main/force push, 자격 증명 경로 차단. office를 볼트 안에 두면 볼트에서 그 폴더만 쓰기 허용
+- `hooks/guard.mjs` `NIDUS_GUARD=1`일 때 [권한 설정](#권한-설정)을 지킨다. 쓰기는 office 폴더(누구나)와 `writable`(builder만)에만, `readonly`·고정 보호 경로는 누구도 못 씀, `noread`는 누구도 못 읽음. main/force push, 자격 증명 경로 차단. office를 볼트 안에 두면 볼트에서 그 폴더만 쓰기 허용. office 안에서는 메인만 다 쓰고, lead는 `tasks/`·`projects/`·`outputs/`·`wiki/`·`teams/<팀>/desk.md`, 나머지 서브에이전트는 `tasks/`만 쓴다. builder가 아닌 서브에이전트는 Bash로 파일을 쓰지 못한다(Write·Edit만). Claude Code 스크래치패드는 누구나 쓴다. 훅이 오류로 죽으면 통과하지 않고 막는다
 - `hooks/running.mjs` SubagentStart/Stop 훅. 돌고 있는 lead·워커를 `system/running/`에 적어 watchdog·메뉴바가 백그라운드 작업을 알게 한다.
 - 상태 줄 `scripts/nidus-usage.mjs`(office.sh가 `--settings`로 지정): 5시간·7일 사용량을 보여 주고 `system/usage.json`에 저장한다.
 - `hooks/inbox.mjs` Stop 훅. 작업 중 온 Telegram 메시지는 `system/inbox.md`에 `- [ ]`로 적히고, 남아 있으면(board에 아직 안 올렸으면) 응답을 끝내지 못하게 막아 처리하게 한다.
@@ -30,12 +30,12 @@
 3. Claude Code에서 `/plugin install telegram@claude-plugins-official` → `/telegram:configure <토큰>`
 4. `scripts/office.sh <볼트 경로> <office 폴더>`로 시작 → 봇에 메시지 → `/telegram:access pair <코드>` → `/telegram:access policy allowlist`
 5. (선택) 자동 재시작: `scripts/watchdog.sh install <볼트 경로> <office 폴더>` — launchd가 1분마다 `nidus` 세션을 확인한다.
-   - 없으면 다시 띄워 `/loop` 재등록 + Telegram 알림. 30분에 3회까지만, 넘으면 watchdog이 Bot API로 직접 알림.
+   - 없으면 다시 띄워 `handoff.md`를 읽고 반복 작업 재등록 + Telegram 알림. 30분에 3회까지만, 넘으면 watchdog이 Bot API로 직접 알림.
    - 승인 대기 3분, 작업 중 60분이 넘으면 Bot API로 직접 알림(멈춤 의심). 토큰은 Telegram 플러그인의 `.env`에서 읽는다.
    - "대기 상태"는 관리자 화면이 대기이고 `system/running/`에 돌고 있는 lead·워커가 없을 때다. 백그라운드로 돌면 작업 중으로 본다(메뉴바 창문도 노랑). 이때는 60분 알림을 보내지 않고(phase는 오래 걸린다), 재시작 요청도 10분 뒤 강제하지 않고 끝날 때까지 기다린다.
    - Telegram 연결이 끊기면(플러그인 `bot.pid`의 server.ts 프로세스가 없음) 2분 뒤 대기 상태일 때 handoff 후 재시작. 작업 중이면 끝날 때까지 기다리고, 30분 넘게 끊겨 있으면 Bot API로 직접 알림. 재시작 상한은 오류 재시작과 공유. 메뉴바 창문은 빨강.
    - 세션이 스스로 재시작을 요청할 수 있다: `handoff.md`를 쓰고 `system/restart-request`를 만들면 대기 상태일 때(늦어도 10분 뒤) 재시작. 세션은 `$NIDUS_WATCHDOG notify`로 Telegram 채널 없이도 알림을 보낼 수 있다. 절차는 office 스킬 "Telegram이 안 될 때".
-   - 매일 06~08시(설정 `tz`, 기본 Asia/Seoul) 사이 대기 상태이면(열린 task·프로젝트는 desk 체크리스트로 이어지므로 상관없음) `system/handoff.md`를 쓰게 한 뒤 재시작(컨텍스트 정리 + `/loop` 7일 만료 대응). 재시작한 세션은 이어 간 일을 Telegram으로 알림. 8시까지 못 하면 그날은 건너뛰고 알림.
+   - 매일 06~08시(설정 `tz`, 기본 Asia/Seoul) 사이 대기 상태이면(열린 task·프로젝트는 desk 체크리스트로 이어지므로 상관없음) `system/handoff.md`를 쓰게 한 뒤 재시작(컨텍스트 정리 + 반복 작업 만료 대응). 재시작한 세션은 이어 간 일을 Telegram으로 알림. 8시까지 못 하면 그날은 건너뛰고 알림.
    - 기록: `<office>/system/events.md`. 전송 확인: `scripts/watchdog.sh notify <office 폴더> 테스트`. 로그 `~/Library/Logs/nidus-watchdog.log`. 일부러 끌 때는 먼저 `scripts/watchdog.sh uninstall`(안 그러면 1분 안에 다시 뜸). 로그인한 뒤에만 동작한다. 재시작이 확인 화면에서 멈추지 않도록 볼트와 `writable` 폴더(기본 `~/Developer`)는 각각 한 번 `cd <폴더> && claude`로 신뢰해 둔다(`--add-dir` 승인은 세션마다 사라짐).
 6. (선택) 메뉴바 상태: `brew install --cask swiftbar` → 플러그인 폴더 선택 → `ln -s "$PWD/scripts/nidus-status.10s.sh" <플러그인 폴더>/`. 흰 집 아이콘의 창문 색: 초록 대기 · 노랑 작업 중(불 켜고 일함) · 주황 승인 대기(사람 필요) · 빨강 Telegram 끊김 · 어두움 꺼짐, 클릭하면 tmux attach·로그.
 
@@ -70,7 +70,7 @@ tz = Asia/Seoul
 
 ## 한계
 - Channels는 research preview(문법이 바뀔 수 있음). 선제 알림은 실측으로 확인됨(2026-11-24).
-- `/loop`는 7일 후 만료 → watchdog의 일일 재시작과 SessionStart 안내로 `jobs.md`에서 재등록.
+- 반복 작업(CronCreate·`/loop`)은 세션 안에만 있고 만료된다(`/loop`는 7일). 세션이 시작할 때마다 `jobs.md`에 적힌 방법으로 다시 건다. 세션이 꺼져 있던 동안의 실행은 따라잡지 않으므로 handoff에 적어 둔다.
 - lead는 어느 팀의 `desk.md`든 쓸 수 있다(훅이 lead의 팀을 모른다). 자기 팀 desk만 쓰는 것은 프롬프트 규칙이다.
 - 팀의 `repos`·`library`는 권한 경계가 아니다. 관리자가 브리프로 지키는 규칙이고, 훅은 `writable` 전체를 builder에게 허용한다. 레포를 정말 막으려면 `readonly`에 적는다.
 - 서브에이전트(builder 제외)는 Bash 쓰기 명령(`>`, `cp`, `mv`, `rm`, `tee` 등)을 아예 못 쓰고, builder는 Bash로 office(`tasks/` 제외)를 건드리지 못한다. 키워드 검사라서 스크립트가 스스로 파일을 쓰는 경우(`python -c`, `.py` 실행)는 못 막는다. 확실히 막으려면 샌드박스가 필요하다.

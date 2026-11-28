@@ -100,13 +100,12 @@
 - 한 메시지에서 두 에이전트를 띄우면 동시에 돌았다. 각 PreToolUse 입력에 `agent_id`와 `agent_type: "<플러그인>:<에이전트>"`(예: `tprobe:probe`)가 들어온다 → guard의 `nidus:builder` 완전 일치 판정이 동시 실행에서도 유효.
 - `SubagentStart`·`SubagentStop` 입력에 `agent_id`·`agent_type`이 있고, Stop에는 `last_assistant_message`·`agent_transcript_path`도 있다 → `hooks/running.mjs`가 `system/running/<agent_id>`로 돌고 있는 워커를 기록.
 - 백그라운드 서브에이전트도 frontmatter의 도구(Read·Write·WebSearch·WebFetch·Bash)를 받았다. 문서는 "백그라운드는 더 작은 기본 도구 세트"라고 적지만 이 구성에서는 빠진 도구가 없었다.
-- `claude -p`(기본 권한 모드)에서는 워커의 Write가 권한 확인으로 거절됐다. 실제 세션(`--permission-mode auto`)에서 확인 화면 없이 쓰는지는 **미확인**.
+- `claude -p`(기본 권한 모드)에서는 워커의 Write가 권한 확인으로 거절됐다. 실제 세션과 같은 auto 모드에서는 확인 화면 없이 썼다(아래 중첩 서브에이전트 실측).
 
 ## 구독 사용량 — 문서 확인
 출처: https://code.claude.com/docs/en/statusline
 - 상태 줄 stdin의 `rate_limits.five_hour`·`seven_day`(`used_percentage`, `resets_at` 초 단위)는 Pro·Max·Ultra에서, 첫 API 응답 뒤에만 들어온다. 상태 줄은 새 응답·`/compact`·권한 모드 변경 등에서 다시 실행된다(300ms 디바운스).
-- `office.sh`가 `--settings`로 상태 줄을 `scripts/nidus-usage.mjs`로 지정해 `system/usage.json`에 저장한다. 실제 세션에서 쓰이는지는 **미확인**.
-- 메인 대화의 응답 때만 갱신되므로, 워커만 돌고 관리자가 조용한 동안의 값은 그만큼 늦다.
+- `office.sh`가 `--settings`로 상태 줄을 `scripts/nidus-usage.mjs`로 지정해 `system/usage.json`에 저장한다. 실제 세션에서 `refreshInterval: 60`으로 관리자가 조용한 동안에도 60초마다 다시 써지는 것을 확인했다(2026-11-28, 17:10:02 → 17:11:02 UTC).
 
 ## 그 밖의 확인
 - `tmux display-message -p -t nidus '#{pane_current_path}'`가 office 경로를 준다 → 메뉴바(`nidus-state.sh`)가 설정 없이 `system/running/`을 찾는다.
@@ -120,3 +119,12 @@
 - lead는 워커를 띄운 뒤 턴을 끝내고(SubagentStop), 워커가 끝나면 알림으로 다시 깨어난다(SubagentStart). 그래서 lead가 오래 붙잡혀 있지 않고, 상태는 desk 파일에 남기면 된다.
 - Agent teams(실험적, 세션 하나에 팀 하나, `-p`에서 안 됨, 토큰 많음)와 팀별 상시 세션(cross-session 메시지)은 검토 후 쓰지 않았다(사용자 결정: 일 단위로 띄우는 서브에이전트).
 - 직접 만든 채널은 `--dangerously-load-development-channels`가 필요하고 시작할 때 경고 화면이 떠서 무인 재시작과 맞지 않는다. Telegram은 `obsidian://` 링크를 누를 수 있게 보내지 않는다(실측, 텍스트만 옴).
+
+## guard 점검 — 실측 확인 (2026-11-28)
+메인 세션이 플러그인을 스스로 점검한 결과를 바탕으로 고쳤다(0.4.0).
+- PreToolUse 훅은 종료 코드 2만 차단이다. guard가 예외로 죽으면 node가 1로 끝나 그 호출이 통과했다(세션이 확인). → 예외를 잡아 2로 막는다.
+- 워커의 "office는 `tasks/`에만" 규칙이 Write·Edit에만 걸려 있어 `echo … >> jobs.md` 같은 Bash 쓰기는 통과했다. → builder가 아닌 서브에이전트의 Bash 쓰기 명령은 모두 막는다. 스크립트가 스스로 쓰는 경우는 여전히 못 막는다(샌드박스 필요).
+- 오탐: `\.env\b`가 `process.env`에, `>`가 `=>`에 걸렸고, 읽기 전용 경로에서 복사하는 `cp`도 쓰기로 막혔다.
+- 실제 `jobs.md`는 CronCreate로 등록하는데 스킬은 `/loop`만 적고 있었다. 세션이 정상 재시작이 아닌 경우(`NIDUS_RESTARTED=1`)에는 `handoff.md`를 읽으라는 안내가 없었다.
+- `npm test`를 세션 안에서 돌리면 `NIDUS_*` 환경 변수가 테스트에 섞였다. → test 스크립트가 지우고 돌린다.
+- 반영할 때 세션을 끌 필요는 없었다: 수정은 worktree에서 하고, 세션이 handoff를 쓴 뒤 대기일 때 `system/restart-request`를 만들면 watchdog이 1분 안에 재시작했다(15:52).
