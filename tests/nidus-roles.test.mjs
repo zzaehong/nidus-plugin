@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, writeFileSync, realpathSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, realpathSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -103,8 +103,9 @@ test('Stop hook catches Telegram messages that never reached the inbox', () => {
   const stop = (extra = {}) => spawnSync('node', [inbox], { input: JSON.stringify({ cwd: office, transcript_path: t, ...extra }), encoding: 'utf8', env });
   const r = stop();
   assert.equal(r.status, NO);
-  assert.match(r.stderr, /msg 3\)/);
+  assert.match(r.stderr, /msg 3\)/); // msg 2 is already in the inbox from the previous test
   assert.doesNotMatch(r.stderr, /999/, 'only real user entries count');
+  assert.match(readFileSync(join(office, 'system/inbox.md'), 'utf8'), /^- \[ \] \d{4}-\d\d-\d\d \d\d:\d\d \(msg 3\) hi$/m, 'stage 1 is written by the hook');
   writeFileSync(join(office, 'system/inbox.md'), '- [x] (msg 2) a → 답장함\n- [x] (msg 3) b → 답장함\n');
   assert.equal(stop().status, OK);
   assert.equal(spawnSync('node', [inbox], { input: JSON.stringify({ cwd: office, transcript_path: join(root, 'none') }), encoding: 'utf8', env }).status, OK, 'missing transcript fails open');
@@ -120,15 +121,17 @@ test('group manager (nidus:lead) writes tasks, projects, outputs and team desks,
   assert.equal(worker('Write', { file_path: join(office, 'projects/p1/project.md') }), NO, 'workers stay in tasks/');
 });
 
-test('subagents write only under office/tasks; the manager owns dashboard, outputs, teams, system', () => {
+test('subagents write only under office/tasks; the manager owns outputs, outputs, teams, system', () => {
   const redteam = as('nidus:redteam');
   for (const who of [worker, builder, redteam]) {
     assert.equal(who('Write', { file_path: join(office, 'tasks/2026-11/x/workers/a.md') }), OK);
     for (const f of ['teams/stock/TEAM.md', 'teams/stock/desk.md', '00.dashboard.md', 'outputs/stock/NVDA.md', 'jobs.md', 'system/inbox.md'])
       assert.equal(who('Write', { file_path: join(office, f) }), NO, f);
   }
-  for (const f of ['teams/stock/TEAM.md', '00.dashboard.md', 'system/inbox.md'])
+  for (const f of ['teams/stock/TEAM.md', 'outputs/stock/NVDA.md', 'system/inbox.md'])
     assert.equal(manager('Write', { file_path: join(office, f) }), OK, f);
+  for (const f of ['00.dashboard.md', 'board.md'])
+    assert.equal(manager('Write', { file_path: join(office, f) }), NO, `${f} is generated`);
   assert.equal(redteam('WebFetch', { url: 'https://example.com' }), OK, 'red team keeps the web');
   assert.equal(redteam('Write', { file_path: join(repo, 'a.js') }), NO, 'red team cannot write code');
 });

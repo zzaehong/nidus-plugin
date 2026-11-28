@@ -29,11 +29,11 @@ check() {
   NOW=$(num "${NIDUS_NOW:-}" "$(date +%s)")
   TODAY=$(date -r "$NOW" +%F) HOUR=$(date -r "$NOW" +%H)
 
-  ST=none SINCE=$NOW ALERTED=0 DAILY=$TODAY HANDOFF=0 IDLE=0 TGDOWN=0 REASON=-
-  [ -f "$STATEF" ] && read -r ST SINCE ALERTED DAILY HANDOFF IDLE TGDOWN REASON <"$STATEF" || true
+  ST=none SINCE=$NOW ALERTED=0 DAILY=$TODAY HANDOFF=0 IDLE=0 TGDOWN=0 REASON=- W7=0
+  [ -f "$STATEF" ] && read -r ST SINCE ALERTED DAILY HANDOFF IDLE TGDOWN REASON W7 <"$STATEF" || true
   case ${ST:-} in off | waiting | working | background | idle) ;; *) ST=none ;; esac
   case ${REASON:-} in daily | telegram) ;; *) REASON=- ;; esac
-  SINCE=$(num "${SINCE:-}" "$NOW") ALERTED=$(num "${ALERTED:-}" 0) HANDOFF=$(num "${HANDOFF:-}" 0) IDLE=$(num "${IDLE:-}" 0) TGDOWN=$(num "${TGDOWN:-}" 0)
+  SINCE=$(num "${SINCE:-}" "$NOW") ALERTED=$(num "${ALERTED:-}" 0) HANDOFF=$(num "${HANDOFF:-}" 0) IDLE=$(num "${IDLE:-}" 0) TGDOWN=$(num "${TGDOWN:-}" 0) W7=$(num "${W7:-}" 0)
   case ${DAILY:-} in [0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]) ;; *) DAILY=$TODAY ;; esac # first run: no restart today
 
   cur=$(NIDUS_OFFICE=$OFFICE sh "$DIR/nidus-state.sh") # background = only subagents running
@@ -42,6 +42,7 @@ check() {
   if [ "$cur" = idle ]; then IDLE=$((IDLE + 1)); else IDLE=0; fi
   if [ "$cur" = off ] || tg_up; then TGDOWN=0; else TGDOWN=$((TGDOWN + 1)); fi
   [ "$TGDOWN" = $TG_DOWN_ALERT ] && { tg "Telegram 연결이 ${TG_DOWN_ALERT}분째 끊겨 있다. 세션이 바쁘거나 재시작 한도에 걸려 아직 복구하지 못했다." || true; }
+  weekly_alert
 
   # The session asks for its own restart by writing system/restart-request (after handoff.md); see office skill.
   if [ -f "$SYS/restart-request" ] && [ "$cur" != off ]; then
@@ -60,8 +61,19 @@ check() {
   esac
 
   # Rewrite only on change: system/ sits in the vault (git, Obsidian).
-  printf '%s %s %s %s %s %s %s %s\n' "$ST" "$SINCE" "$ALERTED" "$DAILY" "$HANDOFF" "$IDLE" "$TGDOWN" "$REASON" >"$STATEF.tmp"
+  printf '%s %s %s %s %s %s %s %s %s\n' "$ST" "$SINCE" "$ALERTED" "$DAILY" "$HANDOFF" "$IDLE" "$TGDOWN" "$REASON" "$W7" >"$STATEF.tmp"
   if cmp -s "$STATEF.tmp" "$STATEF"; then rm -f "$STATEF.tmp"; else mv "$STATEF.tmp" "$STATEF"; fi
+}
+
+# 7-day usage (status line → system/usage.json) crossing 70% / 85%: one alert each per week. W7 is the last level
+# alerted; it resets once usage drops below 70% (the 7-day window rolled over).
+weekly_alert() {
+  w=$(sed -nE '/"seven_day"/,/\}/s/.*"used": ([0-9]+).*/\1/p' "$SYS/usage.json" 2>/dev/null | head -n 1)
+  [ -n "$w" ] || return 0
+  if [ "$w" -lt 70 ]; then W7=0
+  elif [ "$w" -ge 85 ] && [ "$W7" -lt 85 ]; then tg "7일 사용량 ${w}% (85% 넘음). 급하지 않은 일은 초기화 뒤로 미룬다." && W7=85 || true
+  elif [ "$w" -lt 85 ] && [ "$W7" -lt 70 ]; then tg "7일 사용량 ${w}% (70% 넘음). 동시 실행을 줄인다." && W7=70 || true
+  fi
 }
 
 # Telegram channel = the plugin's server.ts process, which keeps its pid in bot.pid while running and removes it on exit.

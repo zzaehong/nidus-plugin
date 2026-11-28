@@ -261,3 +261,19 @@ test('daily restart is not held off by tasks merely queued on the board (status 
   s.tick(day2 + 60);
   assert.match(s.lines('tmux.log')[0] ?? '', /handoff\.md/);
 });
+
+test('7-day usage alerts once at 70% and once at 85%, again only after the window rolls over', () => {
+  const s = sandbox();
+  s.set(true, IDLE);
+  const use = (w) => writeFileSync(join(s.office, 'system/usage.json'), JSON.stringify({ updated: 'x', five_hour: { used: 5, resets_at: 'r' }, seven_day: { used: w, resets_at: 'r' } }, null, 2));
+  const alerts = () => s.lines('curl.log').length;
+  use(60); s.tick(T0);
+  assert.equal(alerts(), 0);
+  use(72); s.tick(T0 + 60); s.tick(T0 + 120);
+  assert.equal(alerts(), 1, 'one alert at 70%');
+  use(86); s.tick(T0 + 180); s.tick(T0 + 240);
+  assert.equal(alerts(), 2, 'one more at 85%');
+  use(10); s.tick(T0 + 300);
+  use(75); s.tick(T0 + 360);
+  assert.equal(alerts(), 3, 'new week, new alert');
+});

@@ -128,3 +128,7 @@
 - 실제 `jobs.md`는 CronCreate로 등록하는데 스킬은 `/loop`만 적고 있었다. 세션이 정상 재시작이 아닌 경우(`NIDUS_RESTARTED=1`)에는 `handoff.md`를 읽으라는 안내가 없었다.
 - `npm test`를 세션 안에서 돌리면 `NIDUS_*` 환경 변수가 테스트에 섞였다. → test 스크립트가 지우고 돌린다.
 - 반영할 때 세션을 끌 필요는 없었다: 수정은 worktree에서 하고, 세션이 handoff를 쓴 뒤 대기일 때 `system/restart-request`를 만들면 watchdog이 1분 안에 재시작했다(15:52).
+
+## Telegram 메시지가 transcript에 남는 모양 — 실측 (2026-11-28)
+- 턴을 시작한 메시지는 `type: "user"`(문자열 content)로, 작업 중에 와서 흡수된 메시지는 `type: "attachment"`·`attachment.type: "queued_command"`(`prompt`, `origin.kind: "channel"`)와 `type: "queue-operation"`(`content`)로 남는다. 실제 transcript에서 뒤쪽으로만 남은 메시지가 11건 있었다.
+- 태그 형식: `<channel source="plugin:telegram:telegram" chat_id message_id user user_id ts="ISO">\n본문\n</channel>`. `tool_result`·`api-request-blob` 안의 태그는 세지 않는다(웹 내용으로 가짜 메시지를 만들 수 없게).

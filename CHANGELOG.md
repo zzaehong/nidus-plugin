@@ -25,6 +25,8 @@
 - guard 오탐 수정: `process.env`, `=>`, 읽기 전용 경로에서 복사하는 `cp`. Claude Code 스크래치패드 쓰기 허용. lead는 `wiki/`에 쓸 수 있다.
 - 반복 작업 등록을 `jobs.md`에 적힌 방법(CronCreate 또는 `/loop`)대로 한다. 모든 재시작에서 `system/handoff.md`를 읽는다. `system/running/`의 남은 파일은 12시간까지 작업 중으로 본다(3시간 넘는 lead가 대기로 보이던 문제).
 - `npm test`는 돌고 있는 세션의 `NIDUS_*` 환경 변수를 물려받지 않는다. watchdog의 쓰이지 않던 `start()` 함수를 지웠다.
+- 규칙 일부를 코드로 옮겼다(`hooks/sync.mjs`): `board.md`·`00.dashboard.md` 자동 생성(손으로 쓰기는 훅이 막음, 요약은 frontmatter `summary`), frontmatter 값 검사, 7일 지난 `[x]` 줄 정리, 동시 실행 수 계산(`usage.json`의 `capacity`), 7일 사용량 70%·85% 알림(watchdog).
+- Inbox 1단계를 훅이 한다: Telegram 메시지를 `system/inbox.md`에 자동으로 적는다. 작업 중에 와서 transcript에 `queued_command`로만 남는 메시지를 예전 Stop 훅이 보지 못하던 문제도 함께 고쳤다.
 - `skills/team-stock`을 `teams/stock/TEAM.md`로 옮겼다. 0.3.0에서 올리면 첫 실행 때 `office/teams/`가 생긴다.
 
 ## 0.3.0 — 2026-11-27

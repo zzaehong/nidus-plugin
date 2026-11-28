@@ -21,6 +21,7 @@ for d in $WR; do mkdir -p "$d"; ADD="$ADD --add-dir '$d'"; done
 unset IFS && set +f
 mkdir -p "$OFFICE/tasks" "$OFFICE/outputs" "$OFFICE/system"
 rm -rf "$OFFICE/system/running" # subagents of the previous session died with it
+node "$PLUGIN/hooks/sync.mjs" cleanup "$OFFICE" || true # drop [x] lines older than 7 days while nothing else writes
 [ -e "$OFFICE/teams" ] || cp -R "$PLUGIN/teams" "$OFFICE/teams" # first run: example teams; later edits are the user's
 touch "$OFFICE/jobs.md" "$OFFICE/system/chat.md"
 # The status line is the only official place that exposes subscription usage; it also saves it for the manager.

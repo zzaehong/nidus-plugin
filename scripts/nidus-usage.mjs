@@ -3,13 +3,15 @@
 // which decides how many workers to run at once from it (office skill, "사용량"). Input: status line JSON on stdin.
 import { writeFileSync, renameSync } from 'node:fs';
 import { join } from 'node:path';
+import { capacity } from '../plugin/hooks/sync.mjs';
 
 export function usage(input, now = Date.now()) {
   const w = (k) => {
     const r = input.rate_limits?.[k];
     return typeof r?.used_percentage === 'number' ? { used: Math.round(r.used_percentage), resets_at: new Date(r.resets_at * 1000).toISOString() } : null;
   };
-  return { updated: new Date(now).toISOString(), five_hour: w('five_hour'), seven_day: w('seven_day') };
+  const u = { updated: new Date(now).toISOString(), five_hour: w('five_hour'), seven_day: w('seven_day') };
+  return { ...u, capacity: capacity(u, now) }; // how many workers/leads to run at once (office skill table)
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

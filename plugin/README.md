@@ -12,11 +12,12 @@
 - `bin/af-query` (선택) Asset_Frame 형식 SQLite 시세 DB 읽기 전용 조회. 경로는 `AF_DB`(기본 `~/Developer/Asset_Frame/var/asset_frame.sqlite3`). 없으면 stock 팀은 웹 출처를 쓴다.
 - `hooks/guard.mjs` `NIDUS_GUARD=1`일 때 [권한 설정](#권한-설정)을 지킨다. 쓰기는 office 폴더(누구나)와 `writable`(builder만)에만, `readonly`·고정 보호 경로는 누구도 못 씀, `noread`는 누구도 못 읽음. main/force push, 자격 증명 경로 차단. office를 볼트 안에 두면 볼트에서 그 폴더만 쓰기 허용. office 안에서는 메인만 다 쓰고, lead는 `tasks/`·`projects/`·`outputs/`·`wiki/`·`teams/<팀>/desk.md`, 나머지 서브에이전트는 `tasks/`만 쓴다. builder가 아닌 서브에이전트는 Bash로 파일을 쓰지 못한다(Write·Edit만). Claude Code 스크래치패드는 누구나 쓴다. 훅이 오류로 죽으면 통과하지 않고 막는다
 - `hooks/running.mjs` SubagentStart/Stop 훅. 돌고 있는 lead·워커를 `system/running/`에 적어 watchdog·메뉴바가 백그라운드 작업을 알게 한다.
-- 상태 줄 `scripts/nidus-usage.mjs`(office.sh가 `--settings`로 지정): 5시간·7일 사용량을 보여 주고 `system/usage.json`에 저장한다.
-- `hooks/inbox.mjs` Stop 훅. 작업 중 온 Telegram 메시지는 `system/inbox.md`에 `- [ ]`로 적히고, 남아 있으면(board에 아직 안 올렸으면) 응답을 끝내지 못하게 막아 처리하게 한다.
+- 상태 줄 `scripts/nidus-usage.mjs`(office.sh가 `--settings`로 지정): 5시간·7일 사용량을 보여 주고 `system/usage.json`에 동시 실행 수(`capacity`)와 함께 저장한다. 7일 70%·85%를 넘으면 watchdog이 한 번씩 알린다.
+- `hooks/inbox.mjs` Inbox 1단계. 받은 Telegram 메시지(작업 중에 온 것 포함)를 `system/inbox.md`에 `- [ ]`로 자동으로 적고(UserPromptSubmit·PostToolUse·Stop), `[ ]`가 남아 있으면 응답을 끝내지 못하게 막아 2단계를 하게 한다.
+- `hooks/sync.mjs` `board.md`·`00.dashboard.md`를 task·프로젝트·outputs frontmatter로 자동 생성하고, 방금 쓴 파일의 frontmatter 값(`status`·`priority`·`due`·`review`)을 검사한다. 세션 시작 때 7일 지난 `[x]` 줄(inbox·desk)을 지운다. 동시 실행 수 계산(`capacity`)도 여기 있다.
 
 ## office 폴더
-- `00.dashboard.md` 검토 대기·막힘·Task Board 요약·최근 완료·반복 작업. 여기만 보면 된다.
+- `00.dashboard.md` 검토 대기·막힘·Task Board 요약·최근 완료·반복 작업. 여기만 보면 된다. `board.md`와 함께 자동 생성(손으로 고치지 않는다, 요약 줄은 각 파일의 `summary`).
 - `board.md` Task Board. 끝나지 않은 task를 지금·빠른 일·예약·나중·막힘 칸으로. 원본은 각 `report.md`의 `status`·`priority`·`due`.
 - `system/inbox.md` Inbox 1단계: 받은 Telegram 메시지를 빠짐없이 적는 기록. 2단계(종류·우선순위 나누기, board에 올리기)를 마치면 `[x]`.
 - `outputs/<분야>/<대상>.md` 결과물. 대상마다 문서 하나를 계속 갱신(현재 판단 → 확인할 점 → 변경 이력). 바뀌면 `review: 대기`, 읽고 나면 Obsidian에서 `확인`으로.

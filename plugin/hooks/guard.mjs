@@ -109,6 +109,8 @@ export function checkWrite(path, cwd, builder = false, office = cwd, agent = bui
 const LEAD = 'nidus:lead';
 const SCRATCH = join(realpathSync('/tmp'), `claude-${process.getuid?.() ?? ''}`);
 function officeWrite(real, root, agent) {
+  if (['board.md', '00.dashboard.md'].includes(real.slice(root.length + 1)))
+    return `${real.slice(root.length + 1)}는 자동 생성된다(hooks/sync.mjs). report.md·project.md·outputs의 frontmatter(status·priority·next·summary 등)를 고쳐라`;
   if (!agent) return null;
   const under = (d) => inside(real, join(root, d));
   if (under('tasks')) return null;
